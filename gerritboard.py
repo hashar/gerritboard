@@ -1,3 +1,15 @@
+"""
+Gerrit board
+
+Usage:
+    gerritboard.py [options]
+    gerritboard.py (-h | --help)
+
+Options:
+    -h --help   Show this help.
+    --split     Generate a table per project
+"""
+
 # Python built-in
 from datetime import datetime
 import operator
@@ -9,12 +21,14 @@ from ansicolor import cyan
 from ansicolor import green
 from ansicolor import red
 from ansicolor import yellow
+from docopt import docopt
 from pygerrit.rest import GerritRestAPI
 from prettytable import PrettyTable
 
 
 BATCH_SIZE = 450
-PROJECT_SPLIT = True
+
+args = docopt(__doc__)
 
 rest = GerritRestAPI('https://gerrit.wikimedia.org/r')
 
@@ -138,7 +152,7 @@ for change in changes:
 
     if change['project'] != prev_project and prev_project is not None:
 
-        if PROJECT_SPLIT:
+        if args['--split']:
             dump_table(table, project_name=prev_project)
             table.clear_rows()
         else:
