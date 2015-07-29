@@ -69,7 +69,8 @@ if False:
         u'branch': u'master',
         u'_sortkey': u'0036c5180003798a',
         u'_number': 227722,
-        u'id': u'mediawiki%2Fextensions%2FProofreadPage~master~I590098f296e78a92d8b9fa20f8ca80d77738ae82',
+        u'id': u'mediawiki%2Fextensions%2FProofreadPage \
+            ~master~I590098f296e78a92d8b9fa20f8ca80d77738ae82',
         u'subject': u'Update registration for ProofreadPage extension'
         """
         print '%(status)s %(created) %(updated)' % {change}
@@ -82,7 +83,8 @@ def dump_table(table, project_name):
     print table
 
 
-table = PrettyTable(['Change', 'Review', 'CI', 'merge', 'owner', 'age', 'updated'])
+table = PrettyTable([
+    'Change', 'Review', 'CI', 'merge', 'owner', 'age', 'updated'])
 prev_project = None
 
 for change in changes:
@@ -118,7 +120,8 @@ for change in changes:
     else:
         fields.append(verified)
 
-    fields.append(cyan('mergeable') if change['mergeable'] else red('conflict'))
+    fields.append(cyan('mergeable')
+                  if change['mergeable'] else red('conflict'))
 
     fields.append(change['owner']['name'])
 
