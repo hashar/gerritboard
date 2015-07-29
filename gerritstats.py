@@ -1,4 +1,5 @@
 from datetime import datetime
+import operator
 import sys
 import time
 
@@ -21,7 +22,6 @@ def stderr(message):
 
 def fetch_chunk(size):
     search_operators = {'is': 'open',
-                        'owner': 'hashar',
                         'limit': str(size),
                         }
     sortkey = None
@@ -73,8 +73,19 @@ if False:
         """
         print '%(status)s %(created) %(updated)' % {change}
 
-table = PrettyTable(['Change', 'Review', 'CI', 'merge', 'project', 'owner', 'age', 'updated'])
+changes.sort(key=operator.itemgetter('project', 'updated'))
+
+
+def dump_table(table, project_name):
+    print "Reviews for %s" % (prev_project)
+    print table
+
+
+table = PrettyTable(['Change', 'Review', 'CI', 'merge', 'owner', 'age', 'updated'])
+prev_project = None
+
 for change in changes:
+
     fields = []
     fields.append(change['_number'])
 
@@ -108,7 +119,6 @@ for change in changes:
 
     fields.append(cyan('mergeable') if change['mergeable'] else red('conflict'))
 
-    fields.append(change['project'])
     fields.append(change['owner']['name'])
 
     for date_field in ['created', 'updated']:
@@ -120,6 +130,12 @@ for change in changes:
         else:
             fields.append('%s days' % age.days)
 
+    if change['project'] != prev_project and prev_project is not None:
+        dump_table(table, project_name=prev_project)
+        table.clear_rows()
+    prev_project = change['project']
     table.add_row(fields)
-print table
+
+dump_table(table, project_name=prev_project)
+
 stderr("Done.\n")
