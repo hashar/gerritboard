@@ -96,7 +96,7 @@ changes.sort(key=operator.itemgetter('project', 'updated'))
 
 def dump_table(table, project_name=None):
     if project_name is not None:
-        print "Reviews for %s" % (prev_project)
+        print "\nReviews for %s" % (prev_project)
     print table
 
 
