@@ -2,8 +2,10 @@ from datetime import datetime
 import sys
 import time
 
+from ansicolor import cyan
 from ansicolor import green
 from ansicolor import red
+from ansicolor import yellow
 from pygerrit.rest import GerritRestAPI
 from prettytable import PrettyTable
 
@@ -71,23 +73,38 @@ if False:
         """
         print '%(status)s %(created) %(updated)' % {change}
 
-table = PrettyTable(['change', 'cr', 'v', 'project', 'owner', 'age', 'updated'])
+table = PrettyTable(['Change', 'Review', 'CI', 'merge', 'project', 'owner', 'age', 'updated'])
 for change in changes:
     fields = []
     fields.append(change['_number'])
-    fields.append(change['labels']['Code-Review'])
+
+    code_review = change['labels']['Code-Review']
+    # note precedence!
+    if 'rejected' in code_review:
+        fields.append(red('rejected'))
+    elif 'disliked' in code_review:
+        fields.append(yellow('disliked'))
+    elif 'recommended' in code_review:
+        fields.append(green('recommended'))
+    elif code_review == {}:
+        fields.append('')
+    else:
+        fields.append(code_review)
 
     verified = change['labels']['Verified']
-    if 'approved' in verified:
-        fields.append(green("+2", bold=True))
+    # note precedence!
+    if 'rejected' in verified:
+        fields.append(red('fails', bold=True))
+    elif 'approved' in verified:
+        fields.append(green('ok'))
     elif 'recommended' in verified:
-        fields.append(green("+1"))
-    elif 'rejected' in verified:
-        fields.append(red("-KO-", bold=True))
+        fields.append(yellow('need test'))
     elif verified == {}:
         fields.append('')
     else:
         fields.append(verified)
+
+    fields.append(cyan('mergeable') if change['mergeable'] else red('conflict'))
 
     fields.append(change['project'])
     fields.append(change['owner']['name'])
