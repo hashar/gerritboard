@@ -51,7 +51,7 @@ def fetch_chunk(size):
 
         if not ret:
             return
-        stderr("Got chunk\n")
+        stderr("Retrieved chunk of %s changes\n" % len(ret))
         yield ret
         sortkey = ret[-1].get('_sortkey')
 
@@ -65,8 +65,8 @@ stderr("Gathering changes by chunks of %s changes\n" % str(BATCH_SIZE + 1))
 start = int(time.time())
 for change in fetch_chunk(size=BATCH_SIZE):
     changes.extend(change)
-stderr("Got %s changes.\n" % len(changes))
-stderr("Took: %.2f seconds\n" % (time.time() - start))
+stderr("Retrieved %s changes in %2.f seconds.\n" % (
+       len(changes), (time.time() - start)))
 
 if False:
     for change in changes:
@@ -164,5 +164,3 @@ for change in changes:
     table.add_row(fields)
 
 dump_table(table, project_name=prev_project)
-
-stderr("Done.\n")
