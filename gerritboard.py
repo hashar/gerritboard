@@ -8,6 +8,7 @@ Usage:
 Options:
     -h --help   Show this help.
     --split     Generate a table per project
+    --owner USER  Only get change for the given Gerrit USER.
 """
 
 # Python built-in
@@ -37,10 +38,12 @@ def stderr(message):
     sys.stderr.write(message)
 
 
-def fetch_chunk(size):
+def fetch_chunks(size, query={}):
     search_operators = {'is': 'open',
                         'limit': str(size),
                         }
+    search_operators.update(query)
+
     sortkey = None
     while True:
         if sortkey is not None:
@@ -61,9 +64,13 @@ if BATCH_SIZE > 500:
 
 changes = []
 
+gerrit_query = {}
+if args['--owner']:
+    gerrit_query['owner'] = args['--owner']
+
 stderr("Gathering changes by chunks of %s changes\n" % str(BATCH_SIZE + 1))
 start = int(time.time())
-for change in fetch_chunk(size=BATCH_SIZE):
+for change in fetch_chunks(size=BATCH_SIZE, query=gerrit_query):
     changes.extend(change)
 stderr("Retrieved %s changes in %2.f seconds.\n" % (
        len(changes), (time.time() - start)))
@@ -99,9 +106,12 @@ def dump_table(table, project_name=None):
         print "\nReviews for %s" % (prev_project)
     print table
 
+headers = ['Change', 'Review', 'CI', 'merge']
+if not args['--owner']:
+    headers.append('owner')
+headers.extend(['age', 'updated'])
+table = PrettyTable(headers)
 
-table = PrettyTable([
-    'Change', 'Review', 'CI', 'merge', 'owner', 'age', 'updated'])
 prev_project = None
 
 for change in changes:
@@ -140,7 +150,8 @@ for change in changes:
     fields.append(cyan('mergeable')
                   if change['mergeable'] else red('conflict'))
 
-    fields.append(change['owner']['name'])
+    if not args['--owner']:
+        fields.append(change['owner']['name'])
 
     for date_field in ['created', 'updated']:
         date = change[date_field][:-10]
