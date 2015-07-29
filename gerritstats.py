@@ -12,6 +12,7 @@ from prettytable import PrettyTable
 
 
 BATCH_SIZE = 450
+PROJECT_SPLIT = True
 
 rest = GerritRestAPI('https://gerrit.wikimedia.org/r')
 
@@ -131,8 +132,15 @@ for change in changes:
             fields.append('%s days' % age.days)
 
     if change['project'] != prev_project and prev_project is not None:
-        dump_table(table, project_name=prev_project)
-        table.clear_rows()
+
+        if PROJECT_SPLIT:
+            dump_table(table, project_name=prev_project)
+            table.clear_rows()
+        else:
+            project_row = [change['project']]
+            project_row.extend(['' for x in range(1, len(table.field_names))])
+            table.add_row(project_row)
+
     prev_project = change['project']
     table.add_row(fields)
 
