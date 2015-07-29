@@ -94,8 +94,9 @@ if False:
 changes.sort(key=operator.itemgetter('project', 'updated'))
 
 
-def dump_table(table, project_name):
-    print "Reviews for %s" % (prev_project)
+def dump_table(table, project_name=None):
+    if project_name is not None:
+        print "Reviews for %s" % (prev_project)
     print table
 
 
@@ -150,11 +151,12 @@ for change in changes:
         else:
             fields.append('%s days' % age.days)
 
-    if change['project'] != prev_project and prev_project is not None:
+    if change['project'] != prev_project:
 
         if args['--split']:
-            dump_table(table, project_name=prev_project)
-            table.clear_rows()
+            if prev_project is not None:
+                dump_table(table, project_name=prev_project)
+                table.clear_rows()
         else:
             project_row = [change['project']]
             project_row.extend(['' for x in range(1, len(table.field_names))])
@@ -163,4 +165,7 @@ for change in changes:
     prev_project = change['project']
     table.add_row(fields)
 
-dump_table(table, project_name=prev_project)
+if args['--split']:
+    dump_table(table, project_name=prev_project)
+else:
+    dump_table(table)
