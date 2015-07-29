@@ -1,8 +1,10 @@
+# Python built-in
 from datetime import datetime
 import operator
 import sys
 import time
 
+# Pypi (see requirements.txt
 from ansicolor import cyan
 from ansicolor import green
 from ansicolor import red
