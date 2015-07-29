@@ -82,6 +82,8 @@ for change in changes:
     # note precedence!
     if 'rejected' in code_review:
         fields.append(red('rejected'))
+    elif 'approved' in code_review:
+        fields.append(green('approved'))
     elif 'disliked' in code_review:
         fields.append(yellow('disliked'))
     elif 'recommended' in code_review:
