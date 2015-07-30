@@ -82,17 +82,28 @@ class GerritFormatter(object):
 
     """Either 'ansi' (default) or 'html' """
     FORMAT = 'ansi'
-    VALID_FORMATS = ('ansi', 'html')
+    BLANK = ''
+
+    @staticmethod
+    def setFormat(format):
+        GerritFormatter.FORMAT = format.lower()
+        if format == 'html':
+            GerritFormatter.BLANK = '&nbsp;'
+        else:
+            GerritFormatter.BLANK = ''
 
     def vary_format(func):
         def wrapper(*args, **kwargs):
             res = func(*args, **kwargs)
             if type(res) is tuple and len(res) == 2:
-                if GerritFormatter.FORMAT.lower() == 'html':
+                if GerritFormatter.FORMAT == 'html':
                     return '<span style="background-color: %s">%s</span>' % (
                            res[0], res[1])
                 else:
                     return getattr(ansicolor, res[0])(res[1])
+            if GerritFormatter.FORMAT == 'html':
+                if res == '':
+                    return '&nbsp'
             return res
         return wrapper
 
@@ -196,7 +207,7 @@ if args['--owner']:
 if args['--project']:
     gerrit_query['project'] = args['--project']
 if args['--html']:
-    GerritFormatter.FORMAT = 'html'
+    GerritFormatter.setFormat('html')
 
 fetcher = GerritChangesFetcher(batch_size=args['--batch'])
 for change in fetcher.fetch(query=gerrit_query):
@@ -260,7 +271,8 @@ for change in changes:
                 table.clear_rows()
         else:
             project_row = [change['project']]
-            project_row.extend(['' for x in range(1, len(table.field_names))])
+            project_row.extend([GerritFormatter.BLANK for x in
+                                range(1, len(table.field_names))])
             table.add_row(project_row)
 
     prev_project = change['project']
