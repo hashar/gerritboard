@@ -102,8 +102,9 @@ class GerritFormatter(object):
             res = func(*args, **kwargs)
             if type(res) is tuple and len(res) == 2:
                 if GerritFormatter.FORMAT == 'html':
-                    return '<div style="background-color: %s">%s</div>' % (
-                           res[0], res[1])
+                    return '<div class="%(class)s">%(state)s</div>' % {
+                           'class': 'state-' + res[1].replace(' ', '-'),
+                           'state': res[1]}
                 else:
                     return getattr(ansicolor, res[0])(res[1])
             if GerritFormatter.FORMAT == 'html':
@@ -220,6 +221,22 @@ div {
     padding: 0em 1em;
     text-align: center;
 }
+
+/* Code-Review */
+div.state-rejected { background-color: LightCoral; }
+div.state-approved { background-color: Chartreuse; }
+div.state-disliked { background-color: Khaki; }
+div.state-recommended { background-color: LightGreen; }
+
+/* Verified */
+div.state-ok { background-color: LightGreen; }
+div.state-fails { background-color: LightCoral; }
+div.state-need-test { background-color: Khaki; }
+
+/* Mergeable status */
+div.state-mergeable { background-color: SkyBlue; }
+div.state-conflict { background-color: LightCoral; }
+
 </style>
 </head>
 <body>
