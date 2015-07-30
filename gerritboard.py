@@ -8,7 +8,9 @@ Usage:
 Options:
     -h --help   Show this help.
     --split     Generate a table per project
-    --owner USER  Only get change for the given Gerrit USER.
+    --owner USER      Filter changes by change owner
+    --project PROJECT Filter changes by project.
+                      Accept regex: ^integration/.*
     --batch CHUNK_SIZE  Number of changes to retrieve for each Gerrit query
                        [default: 100]
 """
@@ -84,6 +86,8 @@ changes = []
 gerrit_query = {}
 if args['--owner']:
     gerrit_query['owner'] = args['--owner']
+if args['--project']:
+    gerrit_query['project'] = args['--project']
 
 fetcher = GerritChangesFetcher(batch_size=args['--batch'])
 start = int(time.time())
