@@ -75,29 +75,6 @@ for change in fetch_chunks(size=BATCH_SIZE, query=gerrit_query):
 stderr("Retrieved %s changes in %2.f seconds.\n" % (
        len(changes), (time.time() - start)))
 
-if False:
-    for change in changes:
-        """
-        u'status': u'NEW',
-        u'topic': u'updateregistration',
-        u'kind': u'gerritcodereview#change',
-        u'created': u'2015-07-29 15:09:10.000000000',
-        u'change_id': u'I590098f296e78a92d8b9fa20f8ca80d77738ae82',
-        u'labels': {u'Verified': {u'rejected': {u'name': u'jenkins-bot'}},
-        u'Code-Review': {}},
-        u'updated': u'2015-07-29 15:20:53.000000000',
-        u'project': u'mediawiki/extensions/ProofreadPage',
-        u'owner': {u'name': u'Niharika29'},
-        u'mergeable': True,
-        u'branch': u'master',
-        u'_sortkey': u'0036c5180003798a',
-        u'_number': 227722,
-        u'id': u'mediawiki%2Fextensions%2FProofreadPage \
-            ~master~I590098f296e78a92d8b9fa20f8ca80d77738ae82',
-        u'subject': u'Update registration for ProofreadPage extension'
-        """
-        print '%(status)s %(created) %(updated)' % {change}
-
 changes.sort(key=operator.itemgetter('project', 'updated'))
 
 
