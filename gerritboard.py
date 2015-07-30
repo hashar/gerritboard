@@ -113,6 +113,23 @@ class GerritFormatter(object):
         return wrapper
 
     @staticmethod
+    def Age(gerrit_date):
+        gerrit_date = gerrit_date[:-10]
+
+        age = now_seconds - datetime.strptime(gerrit_date, '%Y-%m-%d %H:%M:%S')
+        if age.days:
+            return ('%s days' % age.days)
+        else:
+            m, s = divmod(age.seconds, 60)
+            h, m = divmod(m, 60)
+            if h:
+                return ("%d hours" % h)
+            elif m:
+                return ("%d mins" % m)
+            else:
+                return ("%d secs" % s)
+
+    @staticmethod
     def Change(number):
         if GerritFormatter.FORMAT == 'html':
             return '<a href="https://gerrit.wikimedia.org/r/{0}">{0}</a>' \
@@ -271,20 +288,7 @@ for change in changes:
         fields.append(change['owner']['name'])
 
     for date_field in ['created', 'updated']:
-        date = change[date_field][:-10]
-
-        age = now_seconds - datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
-        if age.days:
-            fields.append('%s days' % age.days)
-        else:
-            m, s = divmod(age.seconds, 60)
-            h, m = divmod(m, 60)
-            if h:
-                fields.append("%d hours" % h)
-            elif m:
-                fields.append("%d mins" % m)
-            else:
-                fields.append("%d secs" % s)
+        fields.append(GerritFormatter.Age(change[date_field]))
 
     if change['project'] != prev_project:
 
