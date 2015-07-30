@@ -9,6 +9,8 @@ Options:
     -h --help   Show this help.
     --split     Generate a table per project
     --owner USER  Only get change for the given Gerrit USER.
+    --batch CHUNK_SIZE  Number of changes to retrieve for each Gerrit query
+                       [default: 100]
 """
 
 # Python built-in
@@ -34,16 +36,20 @@ class GerritChangesFetcher(object):
     """Gerrit yields 500 changes at most"""
     MAX_BATCH_SIZE = 500
 
-    def __init__(self, rest_url='https://gerrit.wikimedia.org/r'):
+    def __init__(self, rest_url='https://gerrit.wikimedia.org/r',
+                 batch_size=100):
+
+        self.batch = int(batch_size)
+
         self.rest = GerritRestAPI('https://gerrit.wikimedia.org/r')
 
-    def fetch(self, size, query={}):
-        if not self._validate_batch_size(size):
-            raise Exception('Chunk size %s overflows Gerrit limit %s' % (size,
-                            self.MAX_BATCH_SIZE))
+    def fetch(self, query={}):
+        if not self._validate_batch_size(self.batch):
+            raise Exception('Chunk size %s overflows Gerrit limit %s' % (
+                            self.batch, self.MAX_BATCH_SIZE))
 
         search_operators = {'is': 'open',
-                            'limit': str(size),
+                            'limit': str(self.batch),
                             }
         search_operators.update(query)
 
@@ -79,9 +85,9 @@ gerrit_query = {}
 if args['--owner']:
     gerrit_query['owner'] = args['--owner']
 
-fetcher = GerritChangesFetcher()
+fetcher = GerritChangesFetcher(batch_size=args['--batch'])
 start = int(time.time())
-for change in fetcher.fetch(size=100, query=gerrit_query):
+for change in fetcher.fetch(query=gerrit_query):
     changes.extend(change)
 stderr("Retrieved %s changes in %.1g seconds.\n" % (
        len(changes), (time.time() - start)))
