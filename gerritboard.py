@@ -97,7 +97,7 @@ class GerritFormatter(object):
             res = func(*args, **kwargs)
             if type(res) is tuple and len(res) == 2:
                 if GerritFormatter.FORMAT == 'html':
-                    return '<span style="background-color: %s">%s</span>' % (
+                    return '<div style="background-color: %s">%s</div>' % (
                            res[0], res[1])
                 else:
                     return getattr(ansicolor, res[0])(res[1])
@@ -174,7 +174,7 @@ table > tr > td,
 table > * > tr > th,
 table > * > tr > td {
     border: 1px solid #aaa;
-    padding: 0.2em 0.4em;
+    padding: 0;
 }
 
 table > tr > th,
@@ -185,6 +185,10 @@ table > * > tr > th {
 
 table > caption {
     font-weight: bold;
+}
+div {
+    padding: 0em 1em;
+    text-align: center;
 }
 </style>
 </head>
