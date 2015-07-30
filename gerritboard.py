@@ -205,7 +205,14 @@ div {
 }
 </style>
 </head>
-<body>"""
+<body>
+<p>
+%(gendate)s
+</p>
+""" % ({
+        'gendate': datetime.utcnow().strftime(
+            'Generated %Y-%m-%d %H:%M:%S UTC'),
+    })
 
 
 def html_footer():
