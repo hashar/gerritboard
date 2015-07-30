@@ -21,6 +21,11 @@ from datetime import datetime
 import operator
 import sys
 
+if sys.stdout.encoding is None:
+    import codecs
+    UTF8Writer = codecs.getwriter('utf8')
+    sys.stdout = UTF8Writer(sys.stdout)
+
 # Pypi (see requirements.txt
 import ansicolor
 from docopt import docopt
@@ -29,7 +34,7 @@ import prettytable
 from prettytable import PrettyTable
 
 # Prevent prettytable from escaping our HTML fields
-prettytable.escape = str
+prettytable.escape = unicode
 
 args = docopt(__doc__)
 
@@ -232,7 +237,6 @@ def dump_table(table, project_name=None):
     if project_name is not None:
         print "\nReviews for %s" % (prev_project)
     if args['--html']:
-        table
         print table.get_html_string()
     else:
         print table
