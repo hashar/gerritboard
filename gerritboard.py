@@ -3,6 +3,7 @@ Gerrit board
 
 Usage:
     gerritboard.py [options]
+    gerritboard.py [options] --html
     gerritboard.py (-h | --help)
 
 Options:
@@ -24,7 +25,11 @@ import sys
 import ansicolor
 from docopt import docopt
 from pygerrit.rest import GerritRestAPI
+import prettytable
 from prettytable import PrettyTable
+
+# Prevent prettytable from escaping our HTML fields
+prettytable.escape = str
 
 args = docopt(__doc__)
 
@@ -130,6 +135,14 @@ class GerritFormatter(object):
         else:
             return votes
 
+    @staticmethod
+    @vary_format
+    def Mergeable(merge_info):
+        if change['mergeable']:
+            return ('cyan', 'mergeable')
+        else:
+            return ('red', 'conflict')
+
 
 def stderr(message):
     sys.stderr.write(message)
@@ -142,6 +155,8 @@ if args['--owner']:
     gerrit_query['owner'] = args['--owner']
 if args['--project']:
     gerrit_query['project'] = args['--project']
+if args['--html']:
+    GerritFormatter.FORMAT = 'html'
 
 fetcher = GerritChangesFetcher(batch_size=args['--batch'])
 for change in fetcher.fetch(query=gerrit_query):
@@ -153,7 +168,11 @@ changes.sort(key=operator.itemgetter('project', 'updated'))
 def dump_table(table, project_name=None):
     if project_name is not None:
         print "\nReviews for %s" % (prev_project)
-    print table
+    if args['--html']:
+        table
+        print table.get_html_string()
+    else:
+        print table
 
 headers = ['Change', 'Review', 'CI', 'merge']
 if not args['--owner']:
