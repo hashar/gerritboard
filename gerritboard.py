@@ -22,8 +22,6 @@ import sys
 
 # Pypi (see requirements.txt
 import ansicolor
-from ansicolor import cyan
-from ansicolor import red
 from docopt import docopt
 from pygerrit.rest import GerritRestAPI
 from prettytable import PrettyTable
@@ -172,8 +170,7 @@ for change in changes:
     fields.append(change['_number'])
 
     fields.extend(GerritFormatter.Labels(change['labels']))
-    fields.append(cyan('mergeable')
-                  if change['mergeable'] else red('conflict'))
+    fields.append(GerritFormatter.Mergeable(change['mergeable']))
 
     if not args['--owner']:
         fields.append(change['owner']['name'])
