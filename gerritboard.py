@@ -77,6 +77,46 @@ class GerritChangesFetcher(object):
         return True
 
 
+class GerritFormatter(object):
+
+    @staticmethod
+    def Labels(labels):
+        return (
+            GerritFormatter.CodeReview(labels['Code-Review']),
+            GerritFormatter.Verified(labels['Verified'])
+        )
+
+    @staticmethod
+    def CodeReview(votes):
+        # note precedence!
+        if 'rejected' in votes:
+            return red('rejected')
+        elif 'approved' in votes:
+            return green('approved')
+        elif 'disliked' in votes:
+            return yellow('disliked')
+        elif 'recommended' in votes:
+            return green('recommended')
+        elif votes == {}:
+            return ''
+        else:
+            return votes
+
+    @staticmethod
+    def Verified(votes):
+        # note precedence!
+        if 'rejected' in votes:
+            return red('fails', bold=True)
+        elif 'approved' in votes:
+            return green('ok')
+        elif 'recommended' in votes:
+            return yellow('need test')
+        elif votes == {}:
+            return ''
+        else:
+            return votes
+
+
 def stderr(message):
     sys.stderr.write(message)
 
@@ -117,34 +157,7 @@ for change in changes:
     fields = []
     fields.append(change['_number'])
 
-    code_review = change['labels']['Code-Review']
-    # note precedence!
-    if 'rejected' in code_review:
-        fields.append(red('rejected'))
-    elif 'approved' in code_review:
-        fields.append(green('approved'))
-    elif 'disliked' in code_review:
-        fields.append(yellow('disliked'))
-    elif 'recommended' in code_review:
-        fields.append(green('recommended'))
-    elif code_review == {}:
-        fields.append('')
-    else:
-        fields.append(code_review)
-
-    verified = change['labels']['Verified']
-    # note precedence!
-    if 'rejected' in verified:
-        fields.append(red('fails', bold=True))
-    elif 'approved' in verified:
-        fields.append(green('ok'))
-    elif 'recommended' in verified:
-        fields.append(yellow('need test'))
-    elif verified == {}:
-        fields.append('')
-    else:
-        fields.append(verified)
-
+    fields.extend(GerritFormatter.Labels(change['labels']))
     fields.append(cyan('mergeable')
                   if change['mergeable'] else red('conflict'))
 
