@@ -83,7 +83,7 @@ fetcher = GerritChangesFetcher()
 start = int(time.time())
 for change in fetcher.fetch(size=100, query=gerrit_query):
     changes.extend(change)
-stderr("Retrieved %s changes in %2.f seconds.\n" % (
+stderr("Retrieved %s changes in %.1g seconds.\n" % (
        len(changes), (time.time() - start)))
 
 changes.sort(key=operator.itemgetter('project', 'updated'))
