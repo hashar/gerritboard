@@ -26,41 +26,52 @@ from docopt import docopt
 from pygerrit.rest import GerritRestAPI
 from prettytable import PrettyTable
 
-
-BATCH_SIZE = 450
-
 args = docopt(__doc__)
 
-rest = GerritRestAPI('https://gerrit.wikimedia.org/r')
+
+class GerritChangesFetcher(object):
+
+    """Gerrit yields 500 changes at most"""
+    MAX_BATCH_SIZE = 500
+
+    def __init__(self, rest_url='https://gerrit.wikimedia.org/r'):
+        self.rest = GerritRestAPI('https://gerrit.wikimedia.org/r')
+
+    def fetch(self, size, query={}):
+        if not self._validate_batch_size(size):
+            raise Exception('Chunk size %s overflows Gerrit limit %s' % (size,
+                            self.MAX_BATCH_SIZE))
+
+        search_operators = {'is': 'open',
+                            'limit': str(size),
+                            }
+        search_operators.update(query)
+
+        sortkey = None
+        while True:
+            if sortkey is not None:
+                search_operators['resume_sortkey'] = sortkey
+            query = [':'.join(t) for t in search_operators.iteritems()]
+            endpoint = '/changes/?o=LABELS&q=' + '%20'.join(query)
+            ret = self.rest.get(endpoint)
+
+            if not ret:
+                return
+            stderr("Retrieved chunk of %s changes\n" % len(ret))
+            yield ret
+            sortkey = ret[-1].get('_sortkey')
+
+    def _validate_batch_size(self, size):
+        if size > self.MAX_BATCH_SIZE:
+            stderr('Batch sizes should be less than 500 due to Gerrit '
+                   'internal limit')
+            return False
+        return True
 
 
 def stderr(message):
     sys.stderr.write(message)
 
-
-def fetch_chunks(size, query={}):
-    search_operators = {'is': 'open',
-                        'limit': str(size),
-                        }
-    search_operators.update(query)
-
-    sortkey = None
-    while True:
-        if sortkey is not None:
-            search_operators['resume_sortkey'] = sortkey
-        query = [':'.join(t) for t in search_operators.iteritems()]
-        endpoint = '/changes/?o=LABELS&q=' + '%20'.join(query)
-        ret = rest.get(endpoint)
-
-        if not ret:
-            return
-        stderr("Retrieved chunk of %s changes\n" % len(ret))
-        yield ret
-        sortkey = ret[-1].get('_sortkey')
-
-if BATCH_SIZE > 500:
-    stderr("Batch sizes should be less than 500 due to Gerrit internal limit")
-    sys.exit(1)
 
 changes = []
 
@@ -68,9 +79,9 @@ gerrit_query = {}
 if args['--owner']:
     gerrit_query['owner'] = args['--owner']
 
-stderr("Gathering changes by chunks of %s changes\n" % str(BATCH_SIZE + 1))
+fetcher = GerritChangesFetcher()
 start = int(time.time())
-for change in fetch_chunks(size=BATCH_SIZE, query=gerrit_query):
+for change in fetcher.fetch(size=100, query=gerrit_query):
     changes.extend(change)
 stderr("Retrieved %s changes in %2.f seconds.\n" % (
        len(changes), (time.time() - start)))
