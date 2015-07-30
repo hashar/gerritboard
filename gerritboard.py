@@ -108,6 +108,14 @@ class GerritFormatter(object):
         return wrapper
 
     @staticmethod
+    def Change(number):
+        if GerritFormatter.FORMAT == 'html':
+            return '<a href="https://gerrit.wikimedia.org/r/{0}">{0}</a>' \
+                   .format(number)
+        else:
+            return number
+
+    @staticmethod
     def Labels(labels):
         return (
             GerritFormatter.CodeReview(labels['Code-Review']),
@@ -243,7 +251,7 @@ if args['--html']:
 for change in changes:
 
     fields = []
-    fields.append(change['_number'])
+    fields.append(GerritFormatter.Change(change['_number']))
 
     fields.extend(GerritFormatter.Labels(change['labels']))
     fields.append(GerritFormatter.Mergeable(change['mergeable']))
