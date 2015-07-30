@@ -144,6 +144,46 @@ class GerritFormatter(object):
             return ('red', 'conflict')
 
 
+def html_header():
+    return """<DOCTYPE html>
+<html lang="en">
+<head>
+<style type="text/css">
+<!-- From MediaWiki core-->
+table {
+    margin: 1em 0;
+    background-color: #f9f9f9;
+    border: 1px solid #aaa;
+    border-collapse: collapse;
+    color: black;
+}
+
+table > tr > th,
+table > tr > td,
+table > * > tr > th,
+table > * > tr > td {
+    border: 1px solid #aaa;
+    padding: 0.2em 0.4em;
+}
+
+table > tr > th,
+table > * > tr > th {
+    background-color: #f2f2f2;
+    text-align: center;
+}
+
+table > caption {
+    font-weight: bold;
+}
+</style>
+</head>
+<body>"""
+
+
+def html_footer():
+    return "</body>\n</html>"
+
+
 def stderr(message):
     sys.stderr.write(message)
 
@@ -183,6 +223,8 @@ table = PrettyTable(headers)
 prev_project = None
 now_seconds = datetime.utcnow().replace(microsecond=0)
 
+if args['--html']:
+    print html_header()
 for change in changes:
 
     fields = []
@@ -228,3 +270,6 @@ if args['--split']:
     dump_table(table, project_name=prev_project)
 else:
     dump_table(table)
+
+if args['--html']:
+    print html_footer()
