@@ -21,10 +21,9 @@ import operator
 import sys
 
 # Pypi (see requirements.txt
+import ansicolor
 from ansicolor import cyan
-from ansicolor import green
 from ansicolor import red
-from ansicolor import yellow
 from docopt import docopt
 from pygerrit.rest import GerritRestAPI
 from prettytable import PrettyTable
@@ -78,6 +77,22 @@ class GerritChangesFetcher(object):
 
 class GerritFormatter(object):
 
+    """Either 'ansi' (default) or 'html' """
+    FORMAT = 'ansi'
+    VALID_FORMATS = ('ansi', 'html')
+
+    def vary_format(func):
+        def wrapper(*args, **kwargs):
+            res = func(*args, **kwargs)
+            if type(res) is tuple and len(res) == 2:
+                if GerritFormatter.FORMAT.lower() == 'html':
+                    return '<span style="background-color: %s">%s</span>' % (
+                           res[0], res[1])
+                else:
+                    return getattr(ansicolor, res[0])(res[1])
+            return res
+        return wrapper
+
     @staticmethod
     def Labels(labels):
         return (
@@ -86,30 +101,32 @@ class GerritFormatter(object):
         )
 
     @staticmethod
+    @vary_format
     def CodeReview(votes):
         # note precedence!
         if 'rejected' in votes:
-            return red('rejected')
+            return ('red', 'rejected')
         elif 'approved' in votes:
-            return green('approved')
+            return ('green', 'approved')
         elif 'disliked' in votes:
-            return yellow('disliked')
+            return ('yellow', 'disliked')
         elif 'recommended' in votes:
-            return green('recommended')
+            return ('green', 'recommended')
         elif votes == {}:
             return ''
         else:
             return votes
 
     @staticmethod
+    @vary_format
     def Verified(votes):
         # note precedence!
         if 'rejected' in votes:
-            return red('fails', bold=True)
+            return ('red', 'fails')
         elif 'approved' in votes:
-            return green('ok')
+            return ('green', 'ok')
         elif 'recommended' in votes:
-            return yellow('need test')
+            return ('yellow', 'need test')
         elif votes == {}:
             return ''
         else:
