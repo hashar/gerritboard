@@ -19,7 +19,6 @@ Options:
 from datetime import datetime
 import operator
 import sys
-import time
 
 # Pypi (see requirements.txt
 from ansicolor import cyan
@@ -130,11 +129,8 @@ if args['--project']:
     gerrit_query['project'] = args['--project']
 
 fetcher = GerritChangesFetcher(batch_size=args['--batch'])
-start = int(time.time())
 for change in fetcher.fetch(query=gerrit_query):
     changes.extend(change)
-stderr("Retrieved %s changes in %.1g seconds.\n" % (
-       len(changes), (time.time() - start)))
 
 changes.sort(key=operator.itemgetter('project', 'updated'))
 
