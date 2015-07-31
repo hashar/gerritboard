@@ -338,10 +338,20 @@ formatter.addChanges(changes, owner=args['--owner'])
 if not args['--to-dir']:
     print formatter.generate()
 else:
+    files = []
     for p in formatter.getProjects():
         suffix = '.html' if args['--html'] else '.txt'
-        filename = os.path.join(args['--to-dir'], p.replace('/', '-') + suffix)
-        with open(filename, 'wb') as f:
+        filename = p.replace('/', '-') + suffix
+        full_name = os.path.join(args['--to-dir'], filename)
+        with open(full_name, 'wb') as f:
             print "Writing %s" % filename
             f.write(formatter.wrapBody(formatter.getProjectTable(p)))
-            f.close()
+            files.append(filename)
+
+    if args['--html'] and args['--split']:
+        index = '\n'.join(
+            ['<a href="%(file)s">%(file)s</a><br>' % {'file': file}
+             for file in sorted(files)]
+        )
+        with open(os.path.join(args['--to-dir'], 'index.html'), 'wb') as f:
+            f.write(formatter.wrapBody(index))
