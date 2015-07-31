@@ -86,24 +86,10 @@ class GerritChangesFetcher(object):
 class GerritFormatter(object):
 
     """Either 'ansi' (default) or 'html' """
-    format = 'ansi'
     blank = ''
 
-    def vary_format(func):
-        def wrapper(self, *args, **kwargs):
-            res = func(self, *args, **kwargs)
-            if type(res) is tuple and len(res) == 2:
-                if self.format == 'html':
-                    return '<div class="%(class)s">%(state)s</div>' % {
-                           'class': 'state-' + res[1].replace(' ', '-'),
-                           'state': res[1]}
-                else:
-                    return getattr(ansicolor, res[0])(res[1])
-            if self.format == 'html':
-                if res == '':
-                    return '&nbsp'
-            return res
-        return wrapper
+    def colorize(self, color, state):
+        return getattr(ansicolor, color)(state)
 
     def Age(self, gerrit_date):
         gerrit_date = gerrit_date[:-10]
@@ -122,11 +108,7 @@ class GerritFormatter(object):
                 return ("%d secs" % s)
 
     def Change(self, number):
-        if self.format == 'html':
-            return '<a href="https://gerrit.wikimedia.org/r/{0}">{0}</a>' \
-                   .format(number)
-        else:
-            return number
+        return number
 
     def Labels(self, labels):
         return (
@@ -134,48 +116,53 @@ class GerritFormatter(object):
             self.Verified(labels['Verified'])
         )
 
-    @vary_format
     def CodeReview(self, votes):
         # note precedence!
         if 'rejected' in votes:
-            return ('red', 'rejected')
+            return self.colorize('red', 'rejected')
         elif 'approved' in votes:
-            return ('green', 'approved')
+            return self.colorize('green', 'approved')
         elif 'disliked' in votes:
-            return ('yellow', 'disliked')
+            return self.colorize('yellow', 'disliked')
         elif 'recommended' in votes:
-            return ('green', 'recommended')
+            return self.colorize('green', 'recommended')
         elif votes == {}:
-            return ''
+            return self.blank
         else:
             return votes
 
-    @vary_format
     def Verified(self, votes):
         # note precedence!
         if 'rejected' in votes:
-            return ('red', 'fails')
+            return self.colorize('red', 'fails')
         elif 'approved' in votes:
-            return ('green', 'ok')
+            return self.colorize('green', 'ok')
         elif 'recommended' in votes:
-            return ('yellow', 'need test')
+            return self.colorize('yellow', 'need test')
         elif votes == {}:
-            return ''
+            return self.blank
         else:
             return votes
 
-    @vary_format
     def Mergeable(self, merge_info):
         if change['mergeable']:
-            return ('cyan', 'mergeable')
+            return self.colorize('cyan', 'mergeable')
         else:
-            return ('red', 'conflict')
+            return self.colorize('red', 'conflict')
 
 
 class HTMLGerritFormatter(GerritFormatter):
 
-    format = 'html'
     blank = '&nbsp;'
+
+    def colorize(self, color, state):
+        return '<div class="%(class)s">%(state)s</div>' % {
+               'class': 'state-' + state.replace(' ', '-'),
+               'state': state}
+
+    def Change(self, number):
+        return '<a href="https://gerrit.wikimedia.org/r/{0}">{0}</a>' \
+               .format(number)
 
 
 def html_header():
