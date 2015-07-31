@@ -76,6 +76,12 @@ class GerritChangesFetcher(object):
             yield ret
             sortkey = ret[-1].get('_sortkey')
 
+    def fetch_all(self, query={}):
+        changes = []
+        for change in fetcher.fetch(query=gerrit_query):
+            changes.extend(change)
+        return changes
+
     def _validate_batch_size(self, size):
         if size > self.MAX_BATCH_SIZE:
             stderr('Batch sizes should be less than 500 due to Gerrit '
@@ -307,9 +313,8 @@ else:
                                 split=args['--split'])
 
 fetcher = GerritChangesFetcher(batch_size=args['--batch'])
-for change in fetcher.fetch(query=gerrit_query):
-    changes.extend(change)
-
+changes = fetcher.fetch_all(query=gerrit_query)
 changes.sort(key=operator.itemgetter('project', 'updated'))
+
 formatter.addChanges(changes, owner=args['--owner'])
 print formatter.generate()
