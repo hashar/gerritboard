@@ -86,35 +86,36 @@ class GerritChangesFetcher(object):
 class GerritFormatter(object):
 
     """Either 'ansi' (default) or 'html' """
-    FORMAT = 'ansi'
-    BLANK = ''
+    format = 'ansi'
+    blank = ''
 
-    @staticmethod
-    def setFormat(format):
-        GerritFormatter.FORMAT = format.lower()
+    def __init__(self, format='ansi'):
+        self.setFormat(format=format)
+
+    def setFormat(self, format):
+        self.format = format.lower()
         if format == 'html':
-            GerritFormatter.BLANK = '&nbsp;'
+            self.blank = '&nbsp;'
         else:
-            GerritFormatter.BLANK = ''
+            self.blank = ''
 
     def vary_format(func):
-        def wrapper(*args, **kwargs):
-            res = func(*args, **kwargs)
+        def wrapper(self, *args, **kwargs):
+            res = func(self, *args, **kwargs)
             if type(res) is tuple and len(res) == 2:
-                if GerritFormatter.FORMAT == 'html':
+                if self.format == 'html':
                     return '<div class="%(class)s">%(state)s</div>' % {
                            'class': 'state-' + res[1].replace(' ', '-'),
                            'state': res[1]}
                 else:
                     return getattr(ansicolor, res[0])(res[1])
-            if GerritFormatter.FORMAT == 'html':
+            if self.format == 'html':
                 if res == '':
                     return '&nbsp'
             return res
         return wrapper
 
-    @staticmethod
-    def Age(gerrit_date):
+    def Age(self, gerrit_date):
         gerrit_date = gerrit_date[:-10]
 
         age = now_seconds - datetime.strptime(gerrit_date, '%Y-%m-%d %H:%M:%S')
@@ -130,24 +131,21 @@ class GerritFormatter(object):
             else:
                 return ("%d secs" % s)
 
-    @staticmethod
-    def Change(number):
-        if GerritFormatter.FORMAT == 'html':
+    def Change(self, number):
+        if self.format == 'html':
             return '<a href="https://gerrit.wikimedia.org/r/{0}">{0}</a>' \
                    .format(number)
         else:
             return number
 
-    @staticmethod
-    def Labels(labels):
+    def Labels(self, labels):
         return (
-            GerritFormatter.CodeReview(labels['Code-Review']),
-            GerritFormatter.Verified(labels['Verified'])
+            self.CodeReview(labels['Code-Review']),
+            self.Verified(labels['Verified'])
         )
 
-    @staticmethod
     @vary_format
-    def CodeReview(votes):
+    def CodeReview(self, votes):
         # note precedence!
         if 'rejected' in votes:
             return ('red', 'rejected')
@@ -162,9 +160,8 @@ class GerritFormatter(object):
         else:
             return votes
 
-    @staticmethod
     @vary_format
-    def Verified(votes):
+    def Verified(self, votes):
         # note precedence!
         if 'rejected' in votes:
             return ('red', 'fails')
@@ -177,9 +174,8 @@ class GerritFormatter(object):
         else:
             return votes
 
-    @staticmethod
     @vary_format
-    def Mergeable(merge_info):
+    def Mergeable(self, merge_info):
         if change['mergeable']:
             return ('cyan', 'mergeable')
         else:
@@ -265,7 +261,9 @@ if args['--owner']:
 if args['--project']:
     gerrit_query['project'] = args['--project']
 if args['--html']:
-    GerritFormatter.setFormat('html')
+    formatter = GerritFormatter(format='html')
+else:
+    formatter = GerritFormatter()
 
 fetcher = GerritChangesFetcher(batch_size=args['--batch'])
 for change in fetcher.fetch(query=gerrit_query):
@@ -296,16 +294,16 @@ if args['--html']:
 for change in changes:
 
     fields = []
-    fields.append(GerritFormatter.Change(change['_number']))
+    fields.append(formatter.Change(change['_number']))
 
-    fields.extend(GerritFormatter.Labels(change['labels']))
-    fields.append(GerritFormatter.Mergeable(change['mergeable']))
+    fields.extend(formatter.Labels(change['labels']))
+    fields.append(formatter.Mergeable(change['mergeable']))
 
     if not args['--owner']:
         fields.append(change['owner']['name'])
 
     for date_field in ['created', 'updated']:
-        fields.append(GerritFormatter.Age(change[date_field]))
+        fields.append(formatter.Age(change[date_field]))
 
     if change['project'] != prev_project:
 
@@ -315,7 +313,7 @@ for change in changes:
                 table.clear_rows()
         else:
             project_row = [change['project']]
-            project_row.extend([GerritFormatter.BLANK for x in
+            project_row.extend([formatter.blank for x in
                                 range(1, len(table.field_names))])
             table.add_row(project_row)
 
