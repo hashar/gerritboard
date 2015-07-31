@@ -268,13 +268,15 @@ for change in fetcher.fetch(query=gerrit_query):
 changes.sort(key=operator.itemgetter('project', 'updated'))
 
 
-def dump_table(table, project_name=None):
+def get_table(table, project_name=None):
+    out = ''
     if project_name is not None:
-        print "\nReviews for %s" % (prev_project)
+        out += "\n\nReviews for %s\n" % (prev_project)
     if args['--html']:
-        print table.get_html_string()
+        out += table.get_html_string()
     else:
-        print table
+        out += table.get_string()
+    return out
 
 headers = ['Change', 'Review', 'CI', 'merge']
 if not args['--owner']:
@@ -285,9 +287,7 @@ table = PrettyTable(headers)
 prev_project = None
 now_seconds = datetime.utcnow().replace(microsecond=0)
 
-if args['--html']:
-    print html_header()
-
+out = ''
 for change in changes:
 
     fields = []
@@ -306,7 +306,7 @@ for change in changes:
 
         if args['--split']:
             if prev_project is not None:
-                dump_table(table, project_name=prev_project)
+                out += get_table(table, project_name=prev_project)
                 table.clear_rows()
         else:
             project_row = [change['project']]
@@ -317,10 +317,14 @@ for change in changes:
     prev_project = change['project']
     table.add_row(fields)
 
-if args['--split']:
-    dump_table(table, project_name=prev_project)
-else:
-    dump_table(table)
+    # Last change
+    if (len(changes) == changes.index(change) + 1):
+        if args['--split']:
+            out += get_table(table, project_name=prev_project)
+        else:
+            out += get_table(table)
 
 if args['--html']:
-    print html_footer()
+    print html_header() + out + html_footer()
+else:
+    print out
