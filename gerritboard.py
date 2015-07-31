@@ -88,6 +88,13 @@ class GerritFormatter(object):
     """Either 'ansi' (default) or 'html' """
     blank = ''
 
+    def __init__(self, owner=None):
+        headers = ['Change', 'Review', 'CI', 'merge']
+        if owner is None:
+            headers.append('owner')
+        headers.extend(['age', 'updated'])
+        self.table = PrettyTable(headers)
+
     def colorize(self, color, state):
         return getattr(ansicolor, color)(state)
 
@@ -243,10 +250,11 @@ if args['--owner']:
     gerrit_query['owner'] = args['--owner']
 if args['--project']:
     gerrit_query['project'] = args['--project']
+
 if args['--html']:
-    formatter = HTMLGerritFormatter()
+    formatter = HTMLGerritFormatter(owner=args['--owner'])
 else:
-    formatter = GerritFormatter()
+    formatter = GerritFormatter(owner=args['--owner'])
 
 fetcher = GerritChangesFetcher(batch_size=args['--batch'])
 for change in fetcher.fetch(query=gerrit_query):
@@ -265,11 +273,7 @@ def get_table(table, project_name=None):
         out += table.get_string()
     return out
 
-headers = ['Change', 'Review', 'CI', 'merge']
-if not args['--owner']:
-    headers.append('owner')
-headers.extend(['age', 'updated'])
-table = PrettyTable(headers)
+table = formatter.table
 
 prev_project = None
 now_seconds = datetime.utcnow().replace(microsecond=0)
