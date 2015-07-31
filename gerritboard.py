@@ -89,16 +89,6 @@ class GerritFormatter(object):
     format = 'ansi'
     blank = ''
 
-    def __init__(self, format='ansi'):
-        self.setFormat(format=format)
-
-    def setFormat(self, format):
-        self.format = format.lower()
-        if format == 'html':
-            self.blank = '&nbsp;'
-        else:
-            self.blank = ''
-
     def vary_format(func):
         def wrapper(self, *args, **kwargs):
             res = func(self, *args, **kwargs)
@@ -182,6 +172,12 @@ class GerritFormatter(object):
             return ('red', 'conflict')
 
 
+class HTMLGerritFormatter(GerritFormatter):
+
+    format = 'html'
+    blank = '&nbsp;'
+
+
 def html_header():
     return """<DOCTYPE html>
 <html lang="en">
@@ -261,7 +257,7 @@ if args['--owner']:
 if args['--project']:
     gerrit_query['project'] = args['--project']
 if args['--html']:
-    formatter = GerritFormatter(format='html')
+    formatter = HTMLGerritFormatter()
 else:
     formatter = GerritFormatter()
 
@@ -291,6 +287,7 @@ now_seconds = datetime.utcnow().replace(microsecond=0)
 
 if args['--html']:
     print html_header()
+
 for change in changes:
 
     fields = []
