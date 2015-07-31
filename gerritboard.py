@@ -97,6 +97,21 @@ class GerritFormatter(object):
     def colorize(self, color, state):
         return getattr(ansicolor, color)(state)
 
+    def addChange(self, change, owner=False):
+        fields = []
+        fields.append(formatter.Change(change['_number']))
+
+        fields.extend(formatter.Labels(change['labels']))
+        fields.append(formatter.Mergeable(change['mergeable']))
+
+        if not owner:
+            fields.append(change['owner']['name'])
+
+        for date_field in ['created', 'updated']:
+            fields.append(formatter.Age(change[date_field]))
+
+        return fields
+
     def getTable(self, project_name=None):
         out = ''
         if project_name is not None:
@@ -280,17 +295,7 @@ now_seconds = datetime.utcnow().replace(microsecond=0)
 out = ''
 for change in changes:
 
-    fields = []
-    fields.append(formatter.Change(change['_number']))
-
-    fields.extend(formatter.Labels(change['labels']))
-    fields.append(formatter.Mergeable(change['mergeable']))
-
-    if not args['--owner']:
-        fields.append(change['owner']['name'])
-
-    for date_field in ['created', 'updated']:
-        fields.append(formatter.Age(change[date_field]))
+    fields = formatter.addChange(change, owner=args['--owner'])
 
     if change['project'] != prev_project:
 
