@@ -17,6 +17,7 @@ Options:
 """
 
 # Python built-in
+from collections import defaultdict
 from datetime import datetime
 import operator
 import sys
@@ -86,41 +87,50 @@ class GerritChangesFetcher(object):
 class GerritFormatter(object):
 
     blank = ''
+    project_rows = defaultdict(list)
+    stringifier = 'get_string'
 
     def __init__(self, owner=None):
         headers = ['Change', 'Review', 'CI', 'merge']
         if owner is None:
             headers.append('owner')
         headers.extend(['age', 'updated'])
-        self.table = PrettyTable(headers)
+        self.table_headers = headers
 
     def colorize(self, color, state):
         return getattr(ansicolor, color)(state)
 
-    def addChange(self, change, owner=False):
-        fields = []
-        fields.append(formatter.Change(change['_number']))
+    def addChanges(self, changes, owner=False):
+        for change in changes:
+            fields = []
+            fields.append(formatter.Change(change['_number']))
 
-        fields.extend(formatter.Labels(change['labels']))
-        fields.append(formatter.Mergeable(change['mergeable']))
+            fields.extend(formatter.Labels(change['labels']))
+            fields.append(formatter.Mergeable(change))
 
-        if not owner:
-            fields.append(change['owner']['name'])
+            if not owner:
+                fields.append(change['owner']['name'])
 
-        for date_field in ['created', 'updated']:
-            fields.append(formatter.Age(change[date_field]))
+            for date_field in ['created', 'updated']:
+                fields.append(formatter.Age(change[date_field]))
 
-        return fields
+            self.project_rows[change['project']].append(fields)
 
-    def getTable(self, project_name=None):
-        out = ''
-        if project_name is not None:
-            out += "\n\nReviews for %s\n" % (prev_project)
-        if args['--html']:
-            out += self.table.get_html_string()
-        else:
-            out += self.table.get_string()
-        return out
+    def getProjects(self):
+        return self.project_rows.keys()
+
+    def getProjectTable(self, project):
+        table = PrettyTable(self.table_headers)
+        for row in self.project_rows[project]:
+            table.add_row(row)
+        return getattr(table, self.stringifier)()
+
+    def getTable(self):
+        table = PrettyTable(self.table_headers)
+        for (project, rows) in self.project_rows.iteritems():
+            for row in rows:
+                table.add_row(row)
+        return getattr(table, self.stringifier)()
 
     def Age(self, gerrit_date):
         gerrit_date = gerrit_date[:-10]
@@ -175,7 +185,7 @@ class GerritFormatter(object):
         else:
             return votes
 
-    def Mergeable(self, merge_info):
+    def Mergeable(self, change):
         if change['mergeable']:
             return self.colorize('cyan', 'mergeable')
         else:
@@ -185,6 +195,7 @@ class GerritFormatter(object):
 class HTMLGerritFormatter(GerritFormatter):
 
     blank = '&nbsp;'
+    stringifier = 'get_html_string'
 
     def colorize(self, color, state):
         return '<div class="%(class)s">%(state)s</div>' % {
@@ -287,37 +298,16 @@ for change in fetcher.fetch(query=gerrit_query):
 changes.sort(key=operator.itemgetter('project', 'updated'))
 
 
-table = formatter.table
-
-prev_project = None
 now_seconds = datetime.utcnow().replace(microsecond=0)
 
 out = ''
-for change in changes:
+formatter.addChanges(changes, owner=args['--owner'])
 
-    fields = formatter.addChange(change, owner=args['--owner'])
-
-    if change['project'] != prev_project:
-
-        if args['--split']:
-            if prev_project is not None:
-                out += formatter.getTable(project_name=prev_project)
-                table.clear_rows()
-        else:
-            project_row = [change['project']]
-            project_row.extend([formatter.blank for x in
-                                range(1, len(table.field_names))])
-            table.add_row(project_row)
-
-    prev_project = change['project']
-    table.add_row(fields)
-
-    # Last change
-    if (len(changes) == changes.index(change) + 1):
-        if args['--split']:
-            out += formatter.getTable(project_name=prev_project)
-        else:
-            out += formatter.getTable()
+if args['--split']:
+    for project in formatter.getProjects():
+        out += "\n" + formatter.getProjectTable(project)
+else:
+    out = formatter.getTable()
 
 if args['--html']:
     print html_header() + out + html_footer()
