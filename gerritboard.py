@@ -89,16 +89,28 @@ class GerritFormatter(object):
     blank = ''
     project_rows = defaultdict(list)
     stringifier = 'get_string'
+    header = ''
+    footer = ''
 
-    def __init__(self, owner=None):
+    def __init__(self, owner=None, split=False):
         headers = ['Change', 'Review', 'CI', 'merge']
         if owner is None:
             headers.append('owner')
         headers.extend(['age', 'updated'])
         self.table_headers = headers
+        self.split = True if split else False
 
     def colorize(self, color, state):
         return getattr(ansicolor, color)(state)
+
+    def generate(self):
+        out = ''
+        if self.split:
+            for project in self.getProjects():
+                out += "\n" + self.getProjectTable(project)
+        else:
+            out = formatter.getTable()
+        return self.header + out + self.footer
 
     def addChanges(self, changes, owner=False):
         for change in changes:
@@ -287,9 +299,13 @@ if args['--project']:
     gerrit_query['project'] = args['--project']
 
 if args['--html']:
-    formatter = HTMLGerritFormatter(owner=args['--owner'])
+    formatter = HTMLGerritFormatter(owner=args['--owner'],
+                                    split=args['--split'])
+    formatter.header = html_header()
+    formatter.footer = html_footer()
 else:
-    formatter = GerritFormatter(owner=args['--owner'])
+    formatter = GerritFormatter(owner=args['--owner'],
+                                split=args['--split'])
 
 fetcher = GerritChangesFetcher(batch_size=args['--batch'])
 for change in fetcher.fetch(query=gerrit_query):
@@ -303,13 +319,4 @@ now_seconds = datetime.utcnow().replace(microsecond=0)
 out = ''
 formatter.addChanges(changes, owner=args['--owner'])
 
-if args['--split']:
-    for project in formatter.getProjects():
-        out += "\n" + formatter.getProjectTable(project)
-else:
-    out = formatter.getTable()
-
-if args['--html']:
-    print html_header() + out + html_footer()
-else:
-    print out
+print formatter.generate()
