@@ -353,7 +353,7 @@ else:
             ['<a href="%(file)s">%(shortname)s</a><br>' % {
                 'file': fname,
                 'shortname': fname.rpartition('.')[0]}
-             for fname in sorted(files)]
+             for fname in sorted(files, key=unicode.lower)]
         )
         fname = os.path.join(args['--to-dir'], 'index.html')
         with codecs.open(fname, 'w', 'utf-8') as f:
