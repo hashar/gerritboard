@@ -36,7 +36,7 @@ from prettytable import PrettyTable
 
 # Prevent prettytable from escaping our HTML fields
 prettytable.escape = unicode
-
+NOW_SECONDS = datetime.utcnow().replace(microsecond=0)
 args = docopt(__doc__)
 
 
@@ -147,7 +147,7 @@ class GerritFormatter(object):
     def Age(self, gerrit_date):
         gerrit_date = gerrit_date[:-10]
 
-        age = now_seconds - datetime.strptime(gerrit_date, '%Y-%m-%d %H:%M:%S')
+        age = NOW_SECONDS - datetime.strptime(gerrit_date, '%Y-%m-%d %H:%M:%S')
         if age.days:
             return ('%s days' % age.days)
         else:
@@ -289,7 +289,6 @@ def html_footer():
 def stderr(message):
     sys.stderr.write(message)
 
-
 changes = []
 
 gerrit_query = {}
@@ -312,11 +311,5 @@ for change in fetcher.fetch(query=gerrit_query):
     changes.extend(change)
 
 changes.sort(key=operator.itemgetter('project', 'updated'))
-
-
-now_seconds = datetime.utcnow().replace(microsecond=0)
-
-out = ''
 formatter.addChanges(changes, owner=args['--owner'])
-
 print formatter.generate()
