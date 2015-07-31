@@ -350,8 +350,10 @@ else:
 
     if args['--html'] and args['--split']:
         index = '\n'.join(
-            ['<a href="%(file)s">%(file)s</a><br>' % {'file': file}
-             for file in sorted(files)]
+            ['<a href="%(file)s">%(shortname)s</a><br>' % {
+                'file': fname,
+                'shortname': fname.rpartition('.')[0]}
+             for fname in sorted(files)]
         )
         with open(os.path.join(args['--to-dir'], 'index.html'), 'wb') as f:
             f.write(formatter.wrapBody(index))
