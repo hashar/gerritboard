@@ -149,10 +149,22 @@ class GerritFormatter(object):
         return getattr(table, self.stringifier)()
 
     def getTable(self):
+
         table = PrettyTable(self.table_headers)
+
+        project_old = None
         for (project, rows) in self.project_rows.iteritems():
+
+            if project != project_old:
+                # Insert project name as a row
+                p_row = [project]
+                p_row.extend([self.blank] * (len(self.table_headers) - 1))
+                table.add_row(p_row)
+            project_old = project
+
             for row in rows:
                 table.add_row(row)
+
         return getattr(table, self.stringifier)()
 
     def Age(self, gerrit_date):
