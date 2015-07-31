@@ -19,13 +19,13 @@ Options:
 
 # Python built-in
 from collections import defaultdict
+import codecs
 from datetime import datetime
 import os.path
 import operator
 import sys
 
 if sys.stdout.encoding is None:
-    import codecs
     UTF8Writer = codecs.getwriter('utf8')
     sys.stdout = UTF8Writer(sys.stdout)
 
@@ -343,7 +343,7 @@ else:
         suffix = '.html' if args['--html'] else '.txt'
         filename = p.replace('/', '-') + suffix
         full_name = os.path.join(args['--to-dir'], filename)
-        with open(full_name, 'wb') as f:
+        with codecs.open(full_name, 'w', 'utf-8') as f:
             print "Writing %s" % filename
             f.write(formatter.wrapBody(formatter.getProjectTable(p)))
             files.append(filename)
@@ -355,5 +355,6 @@ else:
                 'shortname': fname.rpartition('.')[0]}
              for fname in sorted(files)]
         )
-        with open(os.path.join(args['--to-dir'], 'index.html'), 'wb') as f:
+        fname = os.path.join(args['--to-dir'], 'index.html')
+        with codecs.open(fname, 'w', 'utf-8') as f:
             f.write(formatter.wrapBody(index))
