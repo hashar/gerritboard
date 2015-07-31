@@ -7,10 +7,11 @@ Usage:
     gerritboard.py (-h | --help)
 
 Options:
-    -h --help   Show this help.
+    -h --help   Show this help
     --split     Generate a table per project
+    --to-dir PATH  With split mode, where to write tables
     --owner USER      Filter changes by change owner
-    --project PROJECT Filter changes by project.
+    --project PROJECT Filter changes by project
                       Accept regex: ^integration/.*
     --batch CHUNK_SIZE  Number of changes to retrieve for each Gerrit query
                        [default: 100]
@@ -19,6 +20,7 @@ Options:
 # Python built-in
 from collections import defaultdict
 from datetime import datetime
+import os.path
 import operator
 import sys
 
@@ -116,7 +118,10 @@ class GerritFormatter(object):
                 out += "\n" + self.getProjectTable(project)
         else:
             out = formatter.getTable()
-        return self.header + out + self.footer
+        return self.wrapBody(out)
+
+    def wrapBody(self, content):
+        return self.header + content + self.footer
 
     def addChanges(self, changes, owner=False):
         for change in changes:
@@ -317,4 +322,14 @@ changes = fetcher.fetch_all(query=gerrit_query)
 changes.sort(key=operator.itemgetter('project', 'updated'))
 
 formatter.addChanges(changes, owner=args['--owner'])
-print formatter.generate()
+
+if not args['--to-dir']:
+    print formatter.generate()
+else:
+    for p in formatter.getProjects():
+        suffix = '.html' if args['--html'] else '.txt'
+        filename = os.path.join(args['--to-dir'], p.replace('/', '-') + suffix)
+        with open(filename, 'wb') as f:
+            print "Writing %s" % filename
+            f.write(formatter.wrapBody(formatter.getProjectTable(p)))
+            f.close()
