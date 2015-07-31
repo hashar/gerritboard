@@ -85,7 +85,6 @@ class GerritChangesFetcher(object):
 
 class GerritFormatter(object):
 
-    """Either 'ansi' (default) or 'html' """
     blank = ''
 
     def __init__(self, owner=None):
