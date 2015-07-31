@@ -97,6 +97,16 @@ class GerritFormatter(object):
     def colorize(self, color, state):
         return getattr(ansicolor, color)(state)
 
+    def getTable(self, project_name=None):
+        out = ''
+        if project_name is not None:
+            out += "\n\nReviews for %s\n" % (prev_project)
+        if args['--html']:
+            out += self.table.get_html_string()
+        else:
+            out += self.table.get_string()
+        return out
+
     def Age(self, gerrit_date):
         gerrit_date = gerrit_date[:-10]
 
@@ -262,16 +272,6 @@ for change in fetcher.fetch(query=gerrit_query):
 changes.sort(key=operator.itemgetter('project', 'updated'))
 
 
-def get_table(table, project_name=None):
-    out = ''
-    if project_name is not None:
-        out += "\n\nReviews for %s\n" % (prev_project)
-    if args['--html']:
-        out += table.get_html_string()
-    else:
-        out += table.get_string()
-    return out
-
 table = formatter.table
 
 prev_project = None
@@ -296,7 +296,7 @@ for change in changes:
 
         if args['--split']:
             if prev_project is not None:
-                out += get_table(table, project_name=prev_project)
+                out += formatter.getTable(project_name=prev_project)
                 table.clear_rows()
         else:
             project_row = [change['project']]
@@ -310,9 +310,9 @@ for change in changes:
     # Last change
     if (len(changes) == changes.index(change) + 1):
         if args['--split']:
-            out += get_table(table, project_name=prev_project)
+            out += formatter.getTable(project_name=prev_project)
         else:
-            out += get_table(table)
+            out += formatter.getTable()
 
 if args['--html']:
     print html_header() + out + html_footer()
