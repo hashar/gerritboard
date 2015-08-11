@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Gerrit board
 
@@ -81,7 +82,7 @@ class GerritChangesFetcher(object):
 
     def fetch_all(self, query={}):
         changes = []
-        for change in fetcher.fetch(query=gerrit_query):
+        for change in self.fetch(query=query):
             changes.extend(change)
         return changes
 
@@ -118,7 +119,7 @@ class GerritFormatter(object):
             for project in self.getProjects():
                 out += "\n" + self.getProjectTable(project)
         else:
-            out = formatter.getTable()
+            out = self.getTable()
         return self.wrapBody(out)
 
     def wrapBody(self, content):
@@ -127,16 +128,16 @@ class GerritFormatter(object):
     def addChanges(self, changes, owner=False):
         for change in changes:
             fields = []
-            fields.append(formatter.Change(change['_number']))
+            fields.append(self.Change(change['_number']))
 
-            fields.extend(formatter.Labels(change['labels']))
-            fields.append(formatter.Mergeable(change))
+            fields.extend(self.Labels(change['labels']))
+            fields.append(self.Mergeable(change))
 
             if not owner:
                 fields.append(change['owner']['name'])
 
             for date_field in ['created', 'updated']:
-                fields.append(formatter.Age(change[date_field]))
+                fields.append(self.Age(change[date_field]))
 
             self.project_rows[change['project']].append(fields)
 
@@ -309,54 +310,63 @@ div.state-conflict { background-color: LightCoral; }
 def stderr(message):
     sys.stderr.write(message)
 
-changes = []
 
-gerrit_query = {}
-if args['--owner']:
-    gerrit_query['owner'] = args['--owner']
-if args['--project']:
-    gerrit_query['project'] = args['--project']
+class GerritBoard(object):
 
-if args['--html']:
-    formatter = HTMLGerritFormatter(owner=args['--owner'],
-                                    split=args['--split'])
-    formatter.header = html_header()
-    formatter.footer = "</body>\n</html>"
-else:
-    formatter = GerritFormatter(owner=args['--owner'],
-                                split=args['--split'])
+    def main(self):
 
-fetcher = GerritChangesFetcher(batch_size=args['--batch'])
-changes = fetcher.fetch_all(query=gerrit_query)
-changes.sort(key=operator.itemgetter('project', 'updated'))
+        changes = []
 
-formatter.addChanges(changes, owner=args['--owner'])
+        gerrit_query = {}
+        if args['--owner']:
+            gerrit_query['owner'] = args['--owner']
+        if args['--project']:
+            gerrit_query['project'] = args['--project']
 
-if not args['--output']:
-    print formatter.generate()
-else:
-    files = []
-    for p in formatter.getProjects():
-        suffix = '.html' if args['--html'] else '.txt'
-        filename = p.replace('/', '-') + suffix
-        full_name = os.path.join(args['--output'], filename)
+        if args['--html']:
+            formatter = HTMLGerritFormatter(owner=args['--owner'],
+                                            split=args['--split'])
+            formatter.header = html_header()
+            formatter.footer = "</body>\n</html>"
+        else:
+            formatter = GerritFormatter(owner=args['--owner'],
+                                        split=args['--split'])
 
-        if not os.path.exists(args['--output']):
-            print "Creating %s" % args['--output']
-            os.makedirs(args['--output'])
+        fetcher = GerritChangesFetcher(batch_size=args['--batch'])
+        changes = fetcher.fetch_all(query=gerrit_query)
+        changes.sort(key=operator.itemgetter('project', 'updated'))
 
-        with codecs.open(full_name, 'w', 'utf-8') as f:
-            print "Writing %s" % filename
-            f.write(formatter.wrapBody(formatter.getProjectTable(p)))
-            files.append(filename)
+        formatter.addChanges(changes, owner=args['--owner'])
 
-    if args['--html'] and args['--split']:
-        index = '\n'.join(
-            ['<a href="%(file)s">%(shortname)s</a><br>' % {
-                'file': fname,
-                'shortname': fname.rpartition('.')[0]}
-             for fname in sorted(files, key=unicode.lower)]
-        )
-        fname = os.path.join(args['--output'], 'index.html')
-        with codecs.open(fname, 'w', 'utf-8') as f:
-            f.write(formatter.wrapBody(index))
+        if not args['--output']:
+            print formatter.generate()
+        else:
+            files = []
+            for p in formatter.getProjects():
+                suffix = '.html' if args['--html'] else '.txt'
+                filename = p.replace('/', '-') + suffix
+                full_name = os.path.join(args['--output'], filename)
+
+                if not os.path.exists(args['--output']):
+                    print "Creating %s" % args['--output']
+                    os.makedirs(args['--output'])
+
+                with codecs.open(full_name, 'w', 'utf-8') as f:
+                    print "Writing %s" % filename
+                    f.write(formatter.wrapBody(formatter.getProjectTable(p)))
+                    files.append(filename)
+
+            if args['--html'] and args['--split']:
+                index = '\n'.join(
+                    ['<a href="%(file)s">%(shortname)s</a><br>' % {
+                        'file': fname,
+                        'shortname': fname.rpartition('.')[0]}
+                     for fname in sorted(files, key=unicode.lower)]
+                )
+                fname = os.path.join(args['--output'], 'index.html')
+                with codecs.open(fname, 'w', 'utf-8') as f:
+                    f.write(formatter.wrapBody(index))
+
+if __name__ == '__main__':
+    gb = GerritBoard()
+    gb.main()
