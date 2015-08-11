@@ -305,10 +305,6 @@ div.state-conflict { background-color: LightCoral; }
     })
 
 
-def html_footer():
-    return "</body>\n</html>"
-
-
 def stderr(message):
     sys.stderr.write(message)
 
@@ -324,7 +320,7 @@ if args['--html']:
     formatter = HTMLGerritFormatter(owner=args['--owner'],
                                     split=args['--split'])
     formatter.header = html_header()
-    formatter.footer = html_footer()
+    formatter.footer = "</body>\n</html>"
 else:
     formatter = GerritFormatter(owner=args['--owner'],
                                 split=args['--split'])
