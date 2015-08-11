@@ -41,7 +41,6 @@ from prettytable import PrettyTable
 # Prevent prettytable from escaping our HTML fields
 prettytable.escape = unicode
 NOW_SECONDS = datetime.utcnow().replace(microsecond=0)
-args = docopt(__doc__)
 
 
 class GerritChangesFetcher(object):
@@ -313,9 +312,12 @@ def stderr(message):
 
 class GerritBoard(object):
 
-    def main(self):
+    changes = []
 
-        changes = []
+    def __init__(self, args):
+        self.args = args
+
+    def main(self):
 
         gerrit_query = {}
         if args['--owner']:
@@ -333,10 +335,10 @@ class GerritBoard(object):
                                         split=args['--split'])
 
         fetcher = GerritChangesFetcher(batch_size=args['--batch'])
-        changes = fetcher.fetch_all(query=gerrit_query)
-        changes.sort(key=operator.itemgetter('project', 'updated'))
+        self.changes = fetcher.fetch_all(query=gerrit_query)
+        self.changes.sort(key=operator.itemgetter('project', 'updated'))
 
-        formatter.addChanges(changes, owner=args['--owner'])
+        formatter.addChanges(self.changes, owner=args['--owner'])
 
         if not args['--output']:
             print formatter.generate()
@@ -368,5 +370,6 @@ class GerritBoard(object):
                     f.write(formatter.wrapBody(index))
 
 if __name__ == '__main__':
-    gb = GerritBoard()
+    args = docopt(__doc__)
+    gb = GerritBoard(args)
     gb.main()
