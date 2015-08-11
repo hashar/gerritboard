@@ -313,61 +313,80 @@ def stderr(message):
 class GerritBoard(object):
 
     changes = []
+    file_suffix = '.txt'
+    formatter = None
+    gerrit_query = {}
+    html = False
+    output_dir = None
 
     def __init__(self, args):
         self.args = args
 
+        # Gerrit search elements
+        if args['--owner']:
+            self.gerrit_query['owner'] = args['--owner']
+        if args['--project']:
+            self.gerrit_query['project'] = args['--project']
+
+        # HTML/ANSI output formatter
+        if args['--html']:
+            self.html = True
+            self.file_suffix = '.html'
+
+            self.formatter = HTMLGerritFormatter(owner=args['--owner'],
+                                                 split=args['--split'])
+            self.formatter.header = html_header()
+            self.formatter.footer = "</body>\n</html>"
+        else:
+            self.formatter = GerritFormatter(owner=args['--owner'],
+                                             split=args['--split'])
+
+        if args['--output']:
+            self.output_dir = args['--output']
+
     def main(self):
 
-        gerrit_query = {}
-        if args['--owner']:
-            gerrit_query['owner'] = args['--owner']
-        if args['--project']:
-            gerrit_query['project'] = args['--project']
-
-        if args['--html']:
-            formatter = HTMLGerritFormatter(owner=args['--owner'],
-                                            split=args['--split'])
-            formatter.header = html_header()
-            formatter.footer = "</body>\n</html>"
-        else:
-            formatter = GerritFormatter(owner=args['--owner'],
-                                        split=args['--split'])
-
-        fetcher = GerritChangesFetcher(batch_size=args['--batch'])
-        self.changes = fetcher.fetch_all(query=gerrit_query)
+        fetcher = GerritChangesFetcher(batch_size=self.args['--batch'])
+        self.changes = fetcher.fetch_all(query=self.gerrit_query)
         self.changes.sort(key=operator.itemgetter('project', 'updated'))
 
-        formatter.addChanges(self.changes, owner=args['--owner'])
+        self.formatter.addChanges(self.changes, owner=self.args['--owner'])
 
-        if not args['--output']:
-            print formatter.generate()
-        else:
-            files = []
-            for p in formatter.getProjects():
-                suffix = '.html' if args['--html'] else '.txt'
-                filename = p.replace('/', '-') + suffix
-                full_name = os.path.join(args['--output'], filename)
+        if self.output_dir is None:
+            print self.formatter.generate()
+            return 0
 
-                if not os.path.exists(args['--output']):
-                    print "Creating %s" % args['--output']
-                    os.makedirs(args['--output'])
+        if not os.path.exists(self.output_dir):
+            print "Creating %s" % self.output_dir
+            os.makedirs(self.output_dir)
 
-                with codecs.open(full_name, 'w', 'utf-8') as f:
-                    print "Writing %s" % filename
-                    f.write(formatter.wrapBody(formatter.getProjectTable(p)))
-                    files.append(filename)
+        files = self.write_projects(self.output_dir)
+        if self.html and self.args['--split']:
+            self.write_index(self.output_dir, files)
 
-            if args['--html'] and args['--split']:
-                index = '\n'.join(
-                    ['<a href="%(file)s">%(shortname)s</a><br>' % {
-                        'file': fname,
-                        'shortname': fname.rpartition('.')[0]}
-                     for fname in sorted(files, key=unicode.lower)]
-                )
-                fname = os.path.join(args['--output'], 'index.html')
-                with codecs.open(fname, 'w', 'utf-8') as f:
-                    f.write(formatter.wrapBody(index))
+    def write_projects(self, output_dir):
+        files = []
+        for p in self.formatter.getProjects():
+            filename = p.replace('/', '-') + self.file_suffix
+            full_name = os.path.join(output_dir, filename)
+
+            with codecs.open(full_name, 'w', 'utf-8') as f:
+                print "Writing %s" % filename
+                f.write(self.formatter.wrapBody(
+                    self.formatter.getProjectTable(p)))
+                files.append(filename)
+        return files
+
+    def write_index(self, output_dir, files):
+            index = '\n'.join(
+                ['<a href="%(file)s">%(shortname)s</a><br>' % {
+                    'file': fname,
+                    'shortname': fname.rpartition('.')[0]}
+                 for fname in sorted(files, key=unicode.lower)]
+            )
+            fname = os.path.join(output_dir, 'index.html')
+            with codecs.open(fname, 'w', 'utf-8') as f:
+                f.write(self.formatter.wrapBody(index))
 
 if __name__ == '__main__':
     args = docopt(__doc__)
