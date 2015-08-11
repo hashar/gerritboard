@@ -16,6 +16,7 @@ Options:
                       Accept regex: ^integration/.*
     --batch CHUNK_SIZE  Number of changes to retrieve for each Gerrit query
                        [default: 100]
+    --cached  Reuse changes from 'gerritboard_cache'
 """
 
 # Python built-in
@@ -25,6 +26,7 @@ from datetime import datetime
 import os
 import os.path
 import operator
+import shelve
 import sys
 
 if sys.stdout.encoding is None:
@@ -312,6 +314,7 @@ def stderr(message):
 
 class GerritBoard(object):
 
+    cache_version = 'v1'
     changes = []
     file_suffix = '.txt'
     formatter = None
@@ -346,9 +349,18 @@ class GerritBoard(object):
 
     def main(self):
 
-        fetcher = GerritChangesFetcher(batch_size=self.args['--batch'])
-        self.changes = fetcher.fetch_all(query=self.gerrit_query)
-        self.changes.sort(key=operator.itemgetter('project', 'updated'))
+        cache = shelve.open('gerritboard_cache')
+        cache_key = '%s:owner:%s/project:%s' % (self.cache_version,
+                                                args['--owner'],
+                                                args['--project'])
+        if args['--cached'] and cache_key in cache:
+            self.changes = cache[cache_key]
+        else:
+            fetcher = GerritChangesFetcher(batch_size=self.args['--batch'])
+            self.changes = fetcher.fetch_all(query=self.gerrit_query)
+            self.changes.sort(key=operator.itemgetter('project', 'updated'))
+            cache[cache_key] = self.changes
+        cache.close()
 
         self.formatter.addChanges(self.changes, owner=self.args['--owner'])
 
