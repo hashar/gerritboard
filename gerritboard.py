@@ -372,33 +372,37 @@ class GerritBoard(object):
             print "Creating %s" % self.output_dir
             os.makedirs(self.output_dir)
 
-        files = self.write_projects(self.output_dir)
+        self.write_projects(self.output_dir)
         if self.html:
-            self.write_index(self.output_dir, files)
+            self.write_index(self.output_dir)
+
+    def project_filename(self, project_name):
+        return project_name.replace('/', '-') + self.file_suffix
 
     def write_projects(self, output_dir):
-        files = []
         for p in self.formatter.getProjects():
-            filename = p.replace('/', '-') + self.file_suffix
+            filename = self.project_filename(p)
             full_name = os.path.join(output_dir, filename)
 
             with codecs.open(full_name, 'w', 'utf-8') as f:
                 print "Writing %s" % filename
                 f.write(self.formatter.wrapBody(
                     self.formatter.getProjectTable(p)))
-                files.append(filename)
-        return files
 
-    def write_index(self, output_dir, files):
-            index = '\n'.join(
-                ['<a href="%(file)s">%(shortname)s</a><br>' % {
+    def write_index(self, output_dir):
+        index = []
+        for p in sorted(self.formatter.getProjects(), key=unicode.lower):
+            fname = self.project_filename(p)
+            index.append(
+                '<a href="%(file)s">%(shortname)s</a><br>' % {
                     'file': fname,
                     'shortname': fname.rpartition('.')[0]}
-                 for fname in sorted(files, key=unicode.lower)]
             )
-            fname = os.path.join(output_dir, 'index.html')
-            with codecs.open(fname, 'w', 'utf-8') as f:
-                f.write(self.formatter.wrapBody(index))
+
+        fname = os.path.join(output_dir, 'index.html')
+        with codecs.open(fname, 'w', 'utf-8') as f:
+            print "Writing index.html"
+            f.write(self.formatter.wrapBody('\n'.join(index)))
 
 if __name__ == '__main__':
     args = docopt(__doc__)
