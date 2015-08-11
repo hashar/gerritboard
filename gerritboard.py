@@ -21,6 +21,7 @@ Options:
 from collections import defaultdict
 import codecs
 from datetime import datetime
+import os
 import os.path
 import operator
 import sys
@@ -339,6 +340,11 @@ else:
         suffix = '.html' if args['--html'] else '.txt'
         filename = p.replace('/', '-') + suffix
         full_name = os.path.join(args['--output'], filename)
+
+        if not os.path.exists(args['--output']):
+            print "Creating %s" % args['--output']
+            os.makedirs(args['--output'])
+
         with codecs.open(full_name, 'w', 'utf-8') as f:
             print "Writing %s" % filename
             f.write(formatter.wrapBody(formatter.getProjectTable(p)))
