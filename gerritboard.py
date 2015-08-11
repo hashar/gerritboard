@@ -361,7 +361,7 @@ class GerritBoard(object):
             os.makedirs(self.output_dir)
 
         files = self.write_projects(self.output_dir)
-        if self.html and self.args['--split']:
+        if self.html:
             self.write_index(self.output_dir, files)
 
     def write_projects(self, output_dir):
