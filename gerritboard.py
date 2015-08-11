@@ -9,7 +9,7 @@ Usage:
 Options:
     -h --help   Show this help
     --split     Generate a table per project
-    --to-dir PATH  With split mode, where to write tables
+    -o --output PATH  Where to write tables
     --owner USER      Filter changes by change owner
     --project PROJECT Filter changes by project
                       Accept regex: ^integration/.*
@@ -331,14 +331,14 @@ changes.sort(key=operator.itemgetter('project', 'updated'))
 
 formatter.addChanges(changes, owner=args['--owner'])
 
-if not args['--to-dir']:
+if not args['--output']:
     print formatter.generate()
 else:
     files = []
     for p in formatter.getProjects():
         suffix = '.html' if args['--html'] else '.txt'
         filename = p.replace('/', '-') + suffix
-        full_name = os.path.join(args['--to-dir'], filename)
+        full_name = os.path.join(args['--output'], filename)
         with codecs.open(full_name, 'w', 'utf-8') as f:
             print "Writing %s" % filename
             f.write(formatter.wrapBody(formatter.getProjectTable(p)))
@@ -351,6 +351,6 @@ else:
                 'shortname': fname.rpartition('.')[0]}
              for fname in sorted(files, key=unicode.lower)]
         )
-        fname = os.path.join(args['--to-dir'], 'index.html')
+        fname = os.path.join(args['--output'], 'index.html')
         with codecs.open(fname, 'w', 'utf-8') as f:
             f.write(formatter.wrapBody(index))
