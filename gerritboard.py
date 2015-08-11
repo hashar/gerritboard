@@ -95,6 +95,55 @@ class GerritChangesFetcher(object):
         return True
 
 
+class ChangeStat(object):
+
+    def __init__(self):
+        self.min_created = '9999-12-31 23:59:59'
+        self.max_created = ''
+        self.min_updated = '9999-12-31 23:59:59'
+        self.max_updated = ''
+        self.num_changes = 0
+        self.num_mergeables = 0
+        self.num_conflicts = 0
+
+    def addChange(self, change):
+        self.num_changes += 1
+
+        self.min_created = min(self.min_created, change['created'][:-10])
+        self.max_created = max(self.max_created, change['created'][:-10])
+
+        self.min_updated = min(self.min_updated, change['updated'][:-10])
+        self.max_updated = max(self.max_updated, change['updated'][:-10])
+
+        if change['mergeable']:
+            self.num_mergeables += 1
+        else:
+            self.num_conflicts += 1
+
+    def __repr__(self):
+        return (
+            '<GerritStat: %(num_changes)s changes '
+            '(%(num_mergeables)s mergeables). '
+            'Oldest: %(min_created)s '
+            'Last update: %(max_updated)s>'
+            % self.__dict__)
+
+
+class GerritStats(object):
+
+    def __init__(self, changes):
+        self.changes = changes
+
+        self.general = ChangeStat()
+        self.per_projects = defaultdict(ChangeStat)
+        self.per_owners = defaultdict(ChangeStat)
+
+        for change in self.changes:
+            self.general.addChange(change)
+            self.per_projects[change['project']].addChange(change)
+            self.per_owners[change['owner']['name']].addChange(change)
+
+
 class GerritFormatter(object):
 
     blank = ''
@@ -361,6 +410,12 @@ class GerritBoard(object):
             self.changes.sort(key=operator.itemgetter('project', 'updated'))
             cache[cache_key] = self.changes
         cache.close()
+
+        stats = GerritStats(self.changes)
+        print stats.general
+        for (ow, stat) in stats.per_owners.iteritems():
+            print ow, stat
+        return
 
         self.formatter.addChanges(self.changes, owner=self.args['--owner'])
 
