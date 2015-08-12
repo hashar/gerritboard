@@ -95,7 +95,7 @@ class GerritChangesFetcher(object):
         return True
 
 
-class ChangeStat(object):
+class AggregateStat(object):
 
     def __init__(self):
         self.min_created = '9999-12-31 23:59:59'
@@ -106,7 +106,7 @@ class ChangeStat(object):
         self.num_mergeables = 0
         self.num_conflicts = 0
 
-    def addChange(self, change):
+    def aggregate(self, change):
         self.num_changes += 1
 
         self.min_created = min(self.min_created, change['created'][:-10])
@@ -134,14 +134,14 @@ class GerritStats(object):
     def __init__(self, changes):
         self.changes = changes
 
-        self.general = ChangeStat()
-        self.per_projects = defaultdict(ChangeStat)
-        self.per_owners = defaultdict(ChangeStat)
+        self.general = AggregateStat()
+        self.per_projects = defaultdict(AggregateStat)
+        self.per_owners = defaultdict(AggregateStat)
 
         for change in self.changes:
-            self.general.addChange(change)
-            self.per_projects[change['project']].addChange(change)
-            self.per_owners[change['owner']['name']].addChange(change)
+            self.general.aggregate(change)
+            self.per_projects[change['project']].aggregate(change)
+            self.per_owners[change['owner']['name']].aggregate(change)
 
 
 class GerritFormatter(object):
