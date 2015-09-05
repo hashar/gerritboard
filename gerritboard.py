@@ -95,6 +95,55 @@ class GerritChangesFetcher(object):
         return True
 
 
+class AggregateStat(object):
+
+    def __init__(self):
+        self.min_created = '9999-12-31 23:59:59'
+        self.max_created = ''
+        self.min_updated = '9999-12-31 23:59:59'
+        self.max_updated = ''
+        self.num_changes = 0
+        self.num_mergeables = 0
+        self.num_conflicts = 0
+
+    def aggregate(self, change):
+        self.num_changes += 1
+
+        self.min_created = min(self.min_created, change['created'][:-10])
+        self.max_created = max(self.max_created, change['created'][:-10])
+
+        self.min_updated = min(self.min_updated, change['updated'][:-10])
+        self.max_updated = max(self.max_updated, change['updated'][:-10])
+
+        if change['mergeable']:
+            self.num_mergeables += 1
+        else:
+            self.num_conflicts += 1
+
+    def __repr__(self):
+        return (
+            '<GerritStat: %(num_changes)s changes '
+            '(%(num_mergeables)s mergeables). '
+            'Oldest: %(min_created)s '
+            'Last update: %(max_updated)s>'
+            % self.__dict__)
+
+
+class GerritStats(object):
+
+    def __init__(self, changes):
+        self.changes = changes
+
+        self.general = AggregateStat()
+        self.per_projects = defaultdict(AggregateStat)
+        self.per_owners = defaultdict(AggregateStat)
+
+        for change in self.changes:
+            self.general.aggregate(change)
+            self.per_projects[change['project']].aggregate(change)
+            self.per_owners[change['owner']['name']].aggregate(change)
+
+
 class GerritFormatter(object):
 
     blank = ''
@@ -102,14 +151,23 @@ class GerritFormatter(object):
     stringifier = 'get_string'
     header = ''
     footer = ''
+    file_suffix = '.txt'
 
     def __init__(self, owner=None, split=False):
+
         headers = ['Change', 'Review', 'CI', 'merge']
         if owner is None:
             headers.append('owner')
         headers.extend(['age', 'updated'])
         self.table_headers = headers
+
+        self.stats_headers = ['Project', 'Open', 'Mergeable', 'Conflicts',
+                              'Oldest', 'Last update']
+
         self.split = True if split else False
+
+    def project_filename(self, project_name):
+        return project_name.replace('/', '-') + self.file_suffix
 
     def colorize(self, color, state):
         return getattr(ansicolor, color)(state)
@@ -149,6 +207,30 @@ class GerritFormatter(object):
         table = PrettyTable(self.table_headers)
         for row in self.project_rows[project]:
             table.add_row(row)
+        return getattr(table, self.stringifier)()
+
+    def getStatsTable(self, changes):
+
+        all_stats = GerritStats(changes)
+        table = PrettyTable(self.stats_headers)
+
+        for p in sorted(self.getProjects(), key=unicode.lower):
+            stats = all_stats.per_projects[p]
+
+            fname = self.project_filename(p)
+
+            table.add_row([
+                '<a href="%(file)s">%(shortname)s</a>' % {
+                    'file': fname,
+                    'shortname': fname.rpartition('.')[0],
+                    },
+                stats.num_changes,
+                stats.num_mergeables,
+                stats.num_conflicts,
+                stats.min_created,
+                stats.max_updated,
+                ]
+            )
         return getattr(table, self.stringifier)()
 
     def getTable(self):
@@ -234,6 +316,7 @@ class HTMLGerritFormatter(GerritFormatter):
 
     blank = '&nbsp;'
     stringifier = 'get_html_string'
+    file_suffix = '.html'
 
     def colorize(self, color, state):
         return '<div class="%(class)s">%(state)s</div>' % {
@@ -316,11 +399,11 @@ class GerritBoard(object):
 
     cache_version = 'v1'
     changes = []
-    file_suffix = '.txt'
     formatter = None
     gerrit_query = {}
     html = False
     output_dir = None
+    stats = None
 
     def __init__(self, args):
         self.args = args
@@ -334,7 +417,6 @@ class GerritBoard(object):
         # HTML/ANSI output formatter
         if args['--html']:
             self.html = True
-            self.file_suffix = '.html'
 
             self.formatter = HTMLGerritFormatter(owner=args['--owner'],
                                                  split=args['--split'])
@@ -376,12 +458,9 @@ class GerritBoard(object):
         if self.html:
             self.write_index(self.output_dir)
 
-    def project_filename(self, project_name):
-        return project_name.replace('/', '-') + self.file_suffix
-
     def write_projects(self, output_dir):
         for p in self.formatter.getProjects():
-            filename = self.project_filename(p)
+            filename = self.formatter.project_filename(p)
             full_name = os.path.join(output_dir, filename)
 
             with codecs.open(full_name, 'w', 'utf-8') as f:
@@ -390,19 +469,11 @@ class GerritBoard(object):
                     self.formatter.getProjectTable(p)))
 
     def write_index(self, output_dir):
-        index = []
-        for p in sorted(self.formatter.getProjects(), key=unicode.lower):
-            fname = self.project_filename(p)
-            index.append(
-                '<a href="%(file)s">%(shortname)s</a><br>' % {
-                    'file': fname,
-                    'shortname': fname.rpartition('.')[0]}
-            )
-
         fname = os.path.join(output_dir, 'index.html')
         with codecs.open(fname, 'w', 'utf-8') as f:
             print "Writing index.html"
-            f.write(self.formatter.wrapBody('\n'.join(index)))
+            f.write(self.formatter.wrapBody(
+                self.formatter.getStatsTable(self.changes)))
 
 if __name__ == '__main__':
     args = docopt(__doc__)
