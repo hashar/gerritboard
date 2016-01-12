@@ -95,6 +95,17 @@ class GerritChangesFetcher(object):
         return True
 
 
+class GerritProjects(object):
+
+    def __init__(self, rest_url='https://gerrit.wikimedia.org/r'):
+        self.rest = GerritRestAPI(rest_url)
+
+    def list(self):
+        ret = self.rest.get('/projects/?d')
+        if not ret:
+            return
+
+
 class AggregateStat(object):
 
     def __init__(self):
