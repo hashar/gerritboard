@@ -29,16 +29,16 @@ import operator
 import shelve
 import sys
 
-if sys.stdout.encoding is None:
-    UTF8Writer = codecs.getwriter('utf8')
-    sys.stdout = UTF8Writer(sys.stdout)
-
 # Pypi (see requirements.txt
 import ansicolor
 from docopt import docopt
 from pygerrit.rest import GerritRestAPI
 import prettytable
 from prettytable import PrettyTable
+
+if sys.stdout.encoding is None:
+    UTF8Writer = codecs.getwriter('utf8')
+    sys.stdout = UTF8Writer(sys.stdout)
 
 # Prevent prettytable from escaping our HTML fields
 prettytable.escape = unicode
