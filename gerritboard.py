@@ -57,7 +57,7 @@ class GerritChangesFetcher(object):
 
         self.rest = GerritRestAPI('https://gerrit.wikimedia.org/r')
 
-    def fetch(self, query={}):
+    def fetch_chunks(self, query={}):
         if not self._validate_batch_size(self.batch):
             raise Exception('Chunk size %s overflows Gerrit limit %s' % (
                             self.batch, self.MAX_BATCH_SIZE))
@@ -83,8 +83,8 @@ class GerritChangesFetcher(object):
 
     def fetch_all(self, query={}):
         changes = []
-        for change in self.fetch(query=query):
-            changes.extend(change)
+        for chunk in self.fetch_chunks(query=query):
+            changes.extend(chunk)
         return changes
 
     def _validate_batch_size(self, size):
