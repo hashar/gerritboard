@@ -1,4 +1,4 @@
 ansicolor
 docopt
 PrettyTable
-pygerrit
+pygerrit2

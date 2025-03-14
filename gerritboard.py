@@ -32,7 +32,7 @@ import sys
 # Pypi (see requirements.txt
 import ansicolor
 from docopt import docopt
-from pygerrit.rest import GerritRestAPI
+from pygerrit2.rest import GerritRestAPI
 import prettytable
 from prettytable import PrettyTable
 
@@ -41,7 +41,7 @@ if sys.stdout.encoding is None:
     sys.stdout = UTF8Writer(sys.stdout)
 
 # Prevent prettytable from escaping our HTML fields
-prettytable.escape = unicode
+prettytable.escape = str
 NOW_SECONDS = datetime.utcnow().replace(microsecond=0)
 
 
@@ -71,7 +71,7 @@ class GerritChangesFetcher(object):
         while True:
             if sortkey is not None:
                 search_operators['resume_sortkey'] = sortkey
-            query = [':'.join(t) for t in search_operators.iteritems()]
+            query = [':'.join(t) for t in search_operators.items()]
             endpoint = '/changes/?o=LABELS&q=' + '%20'.join(query)
             ret = self.rest.get(endpoint)
 
@@ -214,7 +214,7 @@ class GerritFormatter(object):
         all_stats = GerritStats(changes)
         table = PrettyTable(self.stats_headers)
 
-        for p in sorted(self.getProjects(), key=unicode.lower):
+        for p in sorted(self.getProjects(), key=str.lower):
             stats = all_stats.per_projects[p]
 
             fname = self.project_filename(p)
@@ -238,7 +238,7 @@ class GerritFormatter(object):
         table = PrettyTable(self.table_headers)
 
         project_old = None
-        for (project, rows) in self.project_rows.iteritems():
+        for (project, rows) in self.project_rows.items():
 
             if project != project_old:
                 # Insert project name as a row
@@ -447,11 +447,11 @@ class GerritBoard(object):
         self.formatter.addChanges(self.changes, owner=self.args['--owner'])
 
         if self.output_dir is None:
-            print self.formatter.generate()
+            print(self.formatter.generate())
             return 0
 
         if not os.path.exists(self.output_dir):
-            print "Creating %s" % self.output_dir
+            print("Creating %s" % self.output_dir)
             os.makedirs(self.output_dir)
 
         self.write_projects(self.output_dir)
@@ -464,16 +464,17 @@ class GerritBoard(object):
             full_name = os.path.join(output_dir, filename)
 
             with codecs.open(full_name, 'w', 'utf-8') as f:
-                print "Writing %s" % filename
+                print("Writing %s" % filename)
                 f.write(self.formatter.wrapBody(
                     self.formatter.getProjectTable(p)))
 
     def write_index(self, output_dir):
         fname = os.path.join(output_dir, 'index.html')
         with codecs.open(fname, 'w', 'utf-8') as f:
-            print "Writing index.html"
+            print("Writing index.html")
             f.write(self.formatter.wrapBody(
                 self.formatter.getStatsTable(self.changes)))
+
 
 if __name__ == '__main__':
     args = docopt(__doc__)
