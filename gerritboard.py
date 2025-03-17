@@ -45,6 +45,10 @@ prettytable.escape = str
 NOW_SECONDS = datetime.utcnow().replace(microsecond=0)
 
 
+def formatAccountInfo(acct):
+    return acct.get('username', '<deleted #%s>' % acct['_account_id'])
+
+
 class GerritChangesFetcher(object):
 
     """Gerrit yields 500 changes at most"""
@@ -151,7 +155,9 @@ class GerritStats(object):
         for change in self.changes:
             self.general.aggregate(change)
             self.per_projects[change['project']].aggregate(change)
-            self.per_owners[change['owner']['name']].aggregate(change)
+            self.per_owners[
+                formatAccountInfo(change['owner'])
+            ].aggregate(change)
 
 
 class GerritFormatter(object):
@@ -203,7 +209,7 @@ class GerritFormatter(object):
             fields.append(self.Mergeable(change))
 
             if not owner:
-                fields.append(change['owner']['name'])
+                fields.append(formatAccountInfo(change['owner']))
 
             for date_field in ['created', 'updated']:
                 fields.append(self.Age(change[date_field]))
