@@ -33,15 +33,12 @@ import sys
 import ansicolor
 from docopt import docopt
 from pygerrit2.rest import GerritRestAPI
-import prettytable
 from prettytable import PrettyTable
 
 if sys.stdout.encoding is None:
     UTF8Writer = codecs.getwriter('utf8')
     sys.stdout = UTF8Writer(sys.stdout)
 
-# Prevent prettytable from escaping our HTML fields
-prettytable.escape = str
 NOW_SECONDS = datetime.utcnow().replace(microsecond=0)
 
 
@@ -223,7 +220,7 @@ class GerritFormatter(object):
         table = PrettyTable(self.table_headers)
         for row in self.project_rows[project]:
             table.add_row(row)
-        return getattr(table, self.stringifier)()
+        return getattr(table, self.stringifier)(escape_data=False)
 
     def getStatsTable(self, changes):
 
@@ -247,7 +244,7 @@ class GerritFormatter(object):
                 stats.max_updated,
                 ]
             )
-        return getattr(table, self.stringifier)()
+        return getattr(table, self.stringifier)(escape_data=False)
 
     def getTable(self):
 
@@ -266,7 +263,7 @@ class GerritFormatter(object):
             for row in rows:
                 table.add_row(row)
 
-        return getattr(table, self.stringifier)()
+        return getattr(table, self.stringifier)(escape_data=False)
 
     def Age(self, gerrit_date):
         gerrit_date = gerrit_date[:-10]
