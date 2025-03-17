@@ -71,7 +71,11 @@ class GerritChangesFetcher(object):
         chunk_num = 0
         while True:
             query = [':'.join(t) for t in search_operators.items()]
-            endpoint = '/changes/?o=LABELS&q=' + '%20'.join(query)
+            endpoint = '/changes/?' + '&'.join([
+                'o=LABELS',
+                'o=DETAILED_ACCOUNTS',
+                'q=' + '%20'.join(query),
+            ])
             if has_more_changes:
                 endpoint += '&start=%s' % (chunk_num * self.batch)
             ret = self.rest.get(endpoint)
@@ -84,6 +88,8 @@ class GerritChangesFetcher(object):
             yield ret
 
             has_more_changes = ret[-1].get('_more_changes')
+            if not has_more_changes:
+                break
 
     def fetch_all(self, query={}):
         changes = []
@@ -291,10 +297,8 @@ class GerritFormatter(object):
             return self.colorize('yellow', 'disliked')
         elif 'recommended' in votes:
             return self.colorize('green', 'recommended')
-        elif votes == {}:
-            return self.blank
         else:
-            return votes
+            return self.blank
 
     def Verified(self, votes):
         # note precedence!
@@ -304,10 +308,10 @@ class GerritFormatter(object):
             return self.colorize('green', 'ok')
         elif 'recommended' in votes:
             return self.colorize('yellow', 'need test')
-        elif votes == {}:
-            return self.blank
+        elif 'all' in votes:
+            return self.colorize('yellow', 'need test')
         else:
-            return votes
+            return self.blank
 
     def Mergeable(self, change):
         if change['mergeable']:
