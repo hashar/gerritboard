@@ -67,19 +67,23 @@ class GerritChangesFetcher(object):
                             }
         search_operators.update(query)
 
-        sortkey = None
+        has_more_changes = False
+        chunk_num = 0
         while True:
-            if sortkey is not None:
-                search_operators['resume_sortkey'] = sortkey
             query = [':'.join(t) for t in search_operators.items()]
             endpoint = '/changes/?o=LABELS&q=' + '%20'.join(query)
+            if has_more_changes:
+                endpoint += '&start=%s' % (chunk_num * self.batch)
             ret = self.rest.get(endpoint)
 
             if not ret:
                 return
-            stderr("Retrieved chunk of %s changes\n" % len(ret))
+            chunk_num += 1
+            stderr("Retrieved chunk #%s of %s changes\n" % (
+                chunk_num, len(ret)))
             yield ret
-            sortkey = ret[-1].get('_sortkey')
+
+            has_more_changes = ret[-1].get('_more_changes')
 
     def fetch_all(self, query={}):
         changes = []
